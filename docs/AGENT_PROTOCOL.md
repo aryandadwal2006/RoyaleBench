@@ -80,13 +80,14 @@ Example play action:
   "schema": "royalebench.action.v1",
   "type": "play",
   "hand_slot": 1,
+  "expected_card": "Cannon",
   "x_tile": 8.25,
   "y_tile": 17.75
 }
 
 The example illustrates the coordinate convention; the exact allowed coordinate increments are set by the match's action_resolution field. For the existing crforge baseline, only 18 × 32 tile-centre choices exist. Half-tile or fixed-point choices require a tested downstream schema/mask extension and a new action-resolution identifier.
 
-The runner records requested coordinates, quantized point, engine-submitted point, actual landing point, command-given tick, command-run tick, refusal/acceptance and final action status.
+The expected_card field binds a play request to the card that occupied that hand slot in the observation. This is required for late responses in real-time mode: a stale response must never play a different card that has since moved into the same slot. The runner records requested coordinates, quantized point, engine-submitted point, actual landing point, command-given tick, command-run tick, refusal/acceptance and final action status.
 
 The runner must not replace an invalid action with a different card or a strategically better coordinate. Native engine placement search may relocate a tap exactly as the engine's player-command path does; both requested and actual landing points are logged. This is game semantics, not benchmark strategic assistance.
 
@@ -129,10 +130,10 @@ Models producing latent predictions only may enter a model-specific representati
 ## 8. Timing semantics
 
 ### Paused-clock strategic mode
-Both agents receive the same decision snapshot and are called concurrently. The engine does not advance until both responses or operational watchdog outcomes are resolved. Latency is measured but does not consume game time. The watchdog and timeout handling are fixed and published.
+Both agents receive the same decision snapshot and are called concurrently. The engine does not advance until both responses or operational watchdog outcomes are resolved. Latency is measured but does not consume game time. Proposed v1 operational watchdog: 120 seconds per response. A watchdog timeout is recorded as a technical failure/void, not silently converted into an agent loss. Timeout rate and match-completion rate are reported.
 
 ### Real-time mode
-The engine advances on a monotonic wall clock. Late/stale actions are discarded; no action is backdated or applied to a past state. Deadline misses and effective decisions are measured.
+The engine advances at 1× game speed (one 50 ms game tick per 50 ms wall-clock time). The scheduler offers an observation every 250 ms only when that agent has no outstanding request. Each agent may have at most one in-flight request. The engine never waits for inference. When a response arrives, it is applied at the current engine tick only if the response matches its request and, for a play, the expected_card is still in the named hand slot. Native placement search and command delay then begin at the actual arrival tick. Otherwise the action is rejected as stale/invalid. The agent does not receive another observation while its previous request is outstanding, so slower inference directly reduces its reaction frequency. Report the achieved action rate and end-to-end latency. A 120-second watchdog cancels/invalidates a hung request.
 
 An adapter must not infer the timing mode from provider response time. It is explicitly supplied.
 
