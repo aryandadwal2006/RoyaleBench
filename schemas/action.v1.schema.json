@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://royalebench.org/schemas/action.v1.schema.json",
+  "title": "RoyaleBench Action v1",
+  "description": "One action submitted by one seat for one benchmark decision. Coordinate quantization is declared by the match manifest and enforced by the runner.",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "type"],
+      "properties": {
+        "schema": { "const": "royalebench.action.v1" },
+        "type": { "const": "wait" }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "type", "hand_slot", "x_tile", "y_tile"],
+      "properties": {
+        "schema": { "const": "royalebench.action.v1" },
+        "type": { "const": "play" },
+        "hand_slot": { "type": "integer", "minimum": 0, "maximum": 3 },
+        "x_tile": { "type": "number", "minimum": 0, "maximum": 18 },
+        "y_tile": { "type": "number", "minimum": 0, "maximum": 32 }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "type", "button"],
+      "properties": {
+        "schema": { "const": "royalebench.action.v1" },
+        "type": { "const": "ability" },
+        "button": { "type": "integer", "minimum": 0, "maximum": 1 }
+      }
+    }
+  ]
+}
