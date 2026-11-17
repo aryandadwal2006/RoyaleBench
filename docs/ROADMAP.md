@@ -112,7 +112,7 @@ The roadmap is ordered to reduce research risk. Do not build LLM provider integr
 - [ ] Implement fixed match schedules and hidden evaluation seeds.
 - [ ] Implement paired side swaps.
 - [ ] Implement baseline opponent pool: no-op, random legal, simple defensive, simple aggressive and frozen learned policy.
-- [ ] Implement Glicko-2 or TrueSkill rating; select one in an ADR.
+- [ ] Implement Glicko-2 with the initial parameters and rating-period policy in ADR-0009.
 - [ ] Report W/D/L, uncertainty, crown differential, opponent-specific results and invalid/timeouts.
 - [ ] Keep separate modality, latency and action-resolution leaderboards.
 - [ ] Add run manifests, replay hashes and signed result bundles.
