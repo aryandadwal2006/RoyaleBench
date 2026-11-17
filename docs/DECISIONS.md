@@ -54,7 +54,7 @@ These are current design decisions for RoyaleBench v1. They can change only thro
 
 **Reasons:** A single leaderboard cannot fairly combine strategic decision quality with variable provider/network/model speed.
 
-**Consequences:** Every submission reports latency. Rankings are separate. The paused-clock mode uses a published operational watchdog and timeout rule; it is not an infinite-time guarantee.
+**Consequences:** Every submission reports latency. Rankings are separate. The paused-clock mode uses a proposed 120-second per-response operational watchdog. A watchdog timeout is a technical void/failure rather than an agent loss; completion and timeout rates are reported. Real-time mode uses one outstanding request per agent and a 250 ms observation opportunity at 1× game speed.
 
 ## ADR-0006: Target half-tile placement lattice, with tile-centre baseline fallback
 
