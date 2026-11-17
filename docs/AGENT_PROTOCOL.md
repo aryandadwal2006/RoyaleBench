@@ -109,18 +109,36 @@ The runner must not replace an invalid action with a different card or a strateg
 ## 6. LLM usage
 
 The intended LLM interface is one decision call per benchmark observation:
-- provide the state snapshot, public memory, recent events and action schema;
+- provide the compact current state snapshot, public memory, recent visible events and action schema;
 - use a structured JSON/tool-call output format;
-- parse one action;
-- validate it;
-- return it to the engine.
+- return one action: wait, play(hand_slot, expected_card, x_tile, y_tile), or ability(button);
+- validate the response envelope and action;
+- execute through the same engine path as every other agent.
 
 Do not require three sequential model calls for strategy, card and placement in the primary track. That unnecessarily adds provider latency and makes systems incomparable. A model may reason hierarchically inside one response.
 
+### Decision cadence profiles
+
+The cadence is part of the versioned tournament profile, not a per-agent preference:
+- **fast-250ms-v1:** one decision opportunity every 5 engine ticks (250 ms);
+- **llm-api-1s-v1:** one decision opportunity every 20 engine ticks (1 second).
+
+Any agent class may enter either profile. All agents compared in one profile receive the same decision cadence, observation timing and action semantics. Ratings are never pooled across profiles. The 1-second profile reduces API calls for hosted models; it does not provide extra information or a different action interface. Agents can also enter the 250 ms profile if they can sustain its request rate.
+
+At the 250 ms cadence, a three-minute match has up to 720 decision opportunities per seat; at one second it has up to 180. Actual requests can be fewer when the match ends or the agent uses the real-time profile's one-outstanding-request rule.
+
+### Efficient LLM prompting
+
+- Send static game rules, coordinate semantics and fixed deck descriptions at match start, not on every turn.
+- Use a compact current snapshot plus the bounded event delta and common public-memory block.
+- Keep the current snapshot sufficient to recover after a process restart; do not depend exclusively on a long chat transcript.
+- Use provider prompt caching where available, but record model/provider and caching configuration.
+- Make one model call per decision. Do not ask the model to explain its reasoning in an extra call.
+- Do not expose a strategically curated list of only good placements. The agent outputs a coordinate under the declared action resolution and the engine applies native placement search.
+
 The benchmark does not require a chain-of-thought field. If an agent emits a short explanation, it is diagnostic only and is not scored.
 
-Provider-specific prompt engineering is allowed, but prompts, model identifiers, model versions, sampling settings, tool calls, token usage and latency must be reported.
-
+Provider-specific prompt engineering is allowed, but prompts, model identifiers, model versions, sampling settings, tool calls, token usage, cache usage, latency and API cost must be reported.
 ## 7. World-model interface
 
 A forecasting model is registered separately from a complete playing agent.
