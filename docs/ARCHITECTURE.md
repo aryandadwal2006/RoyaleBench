@@ -286,15 +286,11 @@ The adapter converts the coordinates into the engine's integer world units. It l
 
 Do not claim higher precision than the engine supports. The inspected crforge Python schema currently exposes 18 × 32 tile-centre placement choices for each hand slot (plus wait and ability actions). Its underlying player-command path performs placement search, but the Python action schema is not currently a continuous or half-tile public action interface.
 
-The v1 implementation must select and version one of these modes after a placement acceptance test:
+**V1 target: Mode B, half-tile action grid.** Extend the crforge environment schema and masks to a 36 × 64 routing-cell-centre grid. The agent emits x_tile/y_tile at the centre of one half-tile cell (0.25, 0.75, 1.25, ..., 17.75 horizontally; 0.25, 0.75, ..., 31.75 vertically). This is a downstream schema/mask patch, not an existing crforge feature. RoyaleGym's 36 × 64 design is a reference, not proof that the same patch is correct for crforge.
 
-**Mode A: tile-centre baseline.** Use the existing crforge action codec unchanged. This is immediately grounded in the current API but provides coarser placement precision.
+The current crforge 18 × 32 tile-centre codec remains the fallback for local acceptance tests. If the half-tile patch fails, a tile-centre leaderboard must carry a distinct action-resolution ID; do not pool its ratings with half-tile agents.
 
-**Mode B: half-tile action grid.** Extend the crforge environment schema and masks to a 36 × 64 routing-cell-centre grid if the engine's placement search and coordinate mapping validate it. RoyaleGym's 36 × 64 action-grid design is a reference, not proof that the same patch is correct for crforge.
-
-**Mode C: fixed-point point actions.** Expose integer arena coordinates at a declared resolution (for example, a specified fraction of a tile), pass them through the native PlayerCommands placement search, and publish the exact quantization rule. This is more expressive but requires stronger validation and a policy for malformed/out-of-range points.
-
-Do not mix modes on one leaderboard.
+Fixed-point continuous coordinates are a possible later action schema, not a v1 requirement.
 
 For touch-point semantics, configure the crforge environment to use its MASK_ALL_TILES rule (once verified against the pinned engine): a playable hand slot exposes every action-grid point as a tap point, and the engine's own placement search determines the actual landing tile. Do not use MASK_LANDING_TILES as a strategic filter for the official tap-point agent track, because that would pre-filter placements the client would ordinarily accept and relocate. The mask should gate whether the card can be attempted; native placement search should own the location resolution. This choice must be confirmed by placement regression tests and recorded in the match manifest. The initial code should implement Mode A as a working baseline and test Mode B/C before selecting a higher-precision v1 release. The target is Mode B or C, not a claim that they already exist.
 
@@ -406,34 +402,37 @@ Different models have fundamentally different inference costs. A single ranking 
 This is the primary outcome leaderboard.
 
 At each decision:
-1. The engine advances to the fixed decision tick.
+1. The engine advances to the fixed decision tick (five 50 ms ticks by default).
 2. It freezes the game state.
-3. Both seats receive observations from the same simulated tick.
-4. Agent calls are launched concurrently.
-5. The engine waits for both actions (up to a generous operational watchdog, not a gameplay deadline).
-6. Actions are timestamped against that frozen decision and passed to the engine.
+3. Both seats receive observations from that same simulated tick.
+4. Both agent calls are launched concurrently.
+5. The engine waits for both responses or the operational watchdog.
+6. Actions are timestamped against the frozen decision and passed through the native player-command path.
 7. The engine advances by the configured number of game ticks.
+
+Proposed v1 operational watchdog: 120 seconds per response. A watchdog timeout is a technical failure/void, not silently converted into an agent loss. Publish timeout rate and match-completion rate.
 
 Consequences:
 - A slow LLM does not lose simulated game time while thinking.
 - A fast RL agent cannot play several times while its opponent is thinking.
 - Both agents get the same number of decision opportunities.
-- Every response latency is still recorded and reported.
-- A request that exceeds the operational watchdog is recorded as a timeout and handled by the published forfeit/no-action rule; it is never hidden.
-
-The primary strategic rating is therefore approximately latency-neutral, not infinitely patient. Publish the watchdog and all timeout counts.
+- Response latency is still measured and reported.
+- The strategic rating measures decision quality under a generous operational watchdog, not real-time responsiveness.
 
 ### 10.2 Real-time mode: wall-clock 1× simulation
 
-The engine advances according to wall time. Each agent receives observations at a fixed rate and has a fixed decision deadline. It may have at most one unresolved action request. When a response arrives:
-- it is accepted only if it is still valid for the current decision/state under the protocol;
-- otherwise it is marked stale and discarded;
-- no agent gets a private pause;
-- the benchmark does not replay or backdate a late action.
+The engine advances at 1× game speed: one 50 ms game tick per 50 ms wall-clock time. An observation opportunity occurs every 250 ms, but only when that agent has no outstanding request. Each agent has at most one in-flight request.
 
-The engine offers an observation every 250 ms only when that agent has no outstanding request. Each agent may have at most one in-flight request. The engine never waits for inference. When a response arrives, it is applied at the current engine tick only if the response matches its request and, for a play, the expected_card is still in the named hand slot. Native placement search and command delay then begin at the actual arrival tick. Otherwise the action is rejected as stale/invalid. The agent receives no new observation while its previous request is outstanding, so slower inference directly reduces its reaction frequency. A 120-second watchdog invalidates a hung request. Measure achieved action rate, stale/rejected actions and end-to-end latency.
+The engine never waits for inference. When a response arrives:
+- it is applied at the current engine tick, never backdated;
+- the response must match its request/decision ID;
+- for a play, the expected_card must still occupy the specified hand slot;
+- native placement search and the 20-tick command delay begin at the actual arrival tick;
+- otherwise the action is rejected as stale or invalid.
 
-This leaderboard measures the combination of strategy, inference speed and runtime reliability.
+While a request is outstanding, that agent receives no new observation and cannot issue another action. A slow LLM therefore reacts less frequently while the game continues. This deliberately measures the interaction of strategy, latency and reliability.
+
+A 120-second watchdog invalidates a hung request. A timeout/missed decision is logged and handled using the published no-action rule. Report achieved action frequency, stale/rejected actions and end-to-end latency.
 
 ### 10.3 Report latency, do not hide it
 
