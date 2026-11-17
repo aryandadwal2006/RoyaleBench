@@ -7,9 +7,11 @@ Initial pins:
 - RoyaleGym: MIT, commit 278bcb06dae717b89194b992235a9fa8a5209084.
 - RoyaleSim: MIT source licence, commit a849c29ae632e12f81442c45b0d9b2d2f2f99f15; its data/raw directory is explicitly excluded from that licence.
 
-Initialize the references after cloning RoyaleBench:
+Initialize and verify the references after cloning RoyaleBench:
 
-    git submodule update --init --recursive
+    bash scripts/bootstrap_upstreams.sh
+
+The script runs git submodule sync/update and checks that each checkout matches the documented pin. The equivalent manual command is git submodule update --init --recursive.
 
 To see the pinned revisions:
 
