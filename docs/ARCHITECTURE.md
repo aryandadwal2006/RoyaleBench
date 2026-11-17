@@ -471,7 +471,7 @@ Use an evaluation seed set not used for training. Hidden evaluation seeds are ge
 
 ### 11.2 Rating
 
-Use a pairwise 1v1 rating system such as Glicko-2 or TrueSkill, with rating uncertainty and sufficient match counts. The initial implementation should pick one and publish its exact implementation/version and update order. Do not rank by raw win percentage alone.
+Use Glicko-2 for the 1v1 competitive rating. Initial values: rating 1500, rating deviation 350, volatility 0.06, system constant tau 0.5. Update only at the end of a complete published tournament rating period, using all game results in that period against the opponents' pre-period ratings. A paired side-swap contributes both game results; do not collapse a 1-1 split into an arbitrary win/loss. Pin the implementation/version, period definition and update order. Publish rating deviation alongside the rating. Do not rank by raw win percentage alone.
 
 Report alongside the rating:
 - W/D/L and win-rate confidence intervals;
