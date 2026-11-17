@@ -431,7 +431,7 @@ The engine advances according to wall time. Each agent receives observations at 
 - no agent gets a private pause;
 - the benchmark does not replay or backdate a late action.
 
-A missed decision uses the published no-action rule and is counted. Measure deadline-miss rate and effective actions per simulated minute.
+The engine offers an observation every 250 ms only when that agent has no outstanding request. Each agent may have at most one in-flight request. The engine never waits for inference. When a response arrives, it is applied at the current engine tick only if the response matches its request and, for a play, the expected_card is still in the named hand slot. Native placement search and command delay then begin at the actual arrival tick. Otherwise the action is rejected as stale/invalid. The agent receives no new observation while its previous request is outstanding, so slower inference directly reduces its reaction frequency. A 120-second watchdog invalidates a hung request. Measure achieved action rate, stale/rejected actions and end-to-end latency.
 
 This leaderboard measures the combination of strategy, inference speed and runtime reliability.
 
