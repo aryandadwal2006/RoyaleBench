@@ -9,12 +9,23 @@ The roadmap is ordered to reduce research risk. Do not build LLM provider integr
 - [x] Create repository design README.
 - [x] Write architecture specification.
 - [x] Write upstream reuse/licensing plan.
-- [ ] Pin upstream source trees as Git submodules.
-- [ ] Add third-party notices and a reproducible local setup guide.
-- [ ] Add Python package metadata, formatting, typing and CI.
-- [ ] Add architecture decision records for engine, action resolution, observation cadence and latency modes.
+- [x] Pin upstream source trees as Git submodules.
+- [x] Add third-party notices and a reproducible local setup guide.
+- [x] Add Python package metadata, formatting, typing and CI.
+- [x] Add architecture decision records for engine, action resolution, observation cadence and latency modes.
 
 **Exit gate:** a clean clone with recursive submodules can show the exact upstream source revisions used by the design.
+
+### Protocol bootstrap (completed ahead of Phase 1)
+
+- [x] Add versioned ActionV1 JSON Schema.
+- [x] Add request-bound AgentResponseV1 envelope.
+- [x] Add typed Python parsing/validation for wait, play and ability actions.
+- [x] Validate tile-centre and half-tile action coordinates without silently snapping.
+- [x] Add request ID, decision ID and observation-hash checks to reject stale responses.
+- [x] Add unit tests and a GitHub Actions test/lint workflow.
+
+The half-tile code validates a proposed protocol resolution only. It does not yet extend crforge's engine action schema or masks.
 
 ## Phase 1 — Engine acceptance and human-play prototype
 
