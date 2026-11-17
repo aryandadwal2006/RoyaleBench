@@ -81,7 +81,7 @@ Example play action:
   "type": "play",
   "hand_slot": 1,
   "x_tile": 8.25,
-  "y_tile": 17.50
+  "y_tile": 17.75
 }
 
 The example illustrates the coordinate convention; the exact allowed coordinate increments are set by the match's action_resolution field. For the existing crforge baseline, only 18 × 32 tile-centre choices exist. Half-tile or fixed-point choices require a tested downstream schema/mask extension and a new action-resolution identifier.
