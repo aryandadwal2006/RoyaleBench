@@ -67,6 +67,8 @@ class AgentResponse:
         decision_id = raw["decision_id"]
         observation_hash = raw["observation_hash"]
 
+        if not isinstance(request_id, str) or not request_id:
+            raise ResponseMismatchError("request_id must be a non-empty string")
         if request_id != expected_request_id:
             raise ResponseMismatchError("response request_id does not match")
         if (
