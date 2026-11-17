@@ -21,8 +21,8 @@
         "schema": { "const": "royalebench.action.v1" },
         "type": { "const": "play" },
         "hand_slot": { "type": "integer", "minimum": 0, "maximum": 3 },
-        "x_tile": { "type": "number", "minimum": 0, "maximum": 18 },
-        "y_tile": { "type": "number", "minimum": 0, "maximum": 32 }
+        "x_tile": { "type": "number", "minimum": 0, "exclusiveMaximum": 18 },
+        "y_tile": { "type": "number", "minimum": 0, "exclusiveMaximum": 32 }
       }
     },
     {
