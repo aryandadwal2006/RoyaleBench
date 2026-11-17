@@ -40,7 +40,9 @@ RoyaleBench/
 │
 ├── schemas/
 │   ├── action.v1.schema.json
+│   ├── agent-response.v1.schema.json
 │   ├── observation.v1.schema.json  # add after field registry is tested
+│   ├── world-model-request.v1.schema.json  # add after predictor contract is frozen
 │   ├── agent-metadata.v1.schema.json
 │   └── match-manifest.v1.schema.json
 │
@@ -54,7 +56,9 @@ RoyaleBench/
 ├── src/
 │   └── royalebench/
 │       ├── __init__.py
-│       ├── protocol/
+│       ├── protocol/                # initial implementation exists
+│       │   ├── actions.py
+│       │   ├── responses.py
 │       │   ├── types.py
 │       │   ├── validation.py
 │       │   ├── serialization.py
@@ -148,6 +152,8 @@ RoyaleBench/
 │   └── world_model/
 │
 ├── tests/
+│   ├── test_protocol_actions.py   # implemented
+│   ├── test_protocol_responses.py # implemented
 │   ├── protocol/
 │   ├── engine/
 │   ├── observations/
