@@ -294,7 +294,9 @@ The v1 implementation must select and version one of these modes after a placeme
 
 **Mode C: fixed-point point actions.** Expose integer arena coordinates at a declared resolution (for example, a specified fraction of a tile), pass them through the native PlayerCommands placement search, and publish the exact quantization rule. This is more expressive but requires stronger validation and a policy for malformed/out-of-range points.
 
-Do not mix modes on one leaderboard. The initial code should implement Mode A as a working baseline and test Mode B/C before selecting a higher-precision v1 release. The target is Mode B or C, not a claim that they already exist.
+Do not mix modes on one leaderboard.
+
+For touch-point semantics, configure the crforge environment to use its MASK_ALL_TILES rule (once verified against the pinned engine): a playable hand slot exposes every action-grid point as a tap point, and the engine's own placement search determines the actual landing tile. Do not use MASK_LANDING_TILES as a strategic filter for the official tap-point agent track, because that would pre-filter placements the client would ordinarily accept and relocate. The mask should gate whether the card can be attempted; native placement search should own the location resolution. This choice must be confirmed by placement regression tests and recorded in the match manifest. The initial code should implement Mode A as a working baseline and test Mode B/C before selecting a higher-precision v1 release. The target is Mode B or C, not a claim that they already exist.
 
 ### 7.3 Do not provide a giant LLM action list
 
