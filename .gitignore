@@ -1,0 +1,30 @@
+# Python environments and caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.pyright/
+*.egg-info/
+
+# Build outputs
+build/
+dist/
+.coverage
+htmlcov/
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+
+# Generated benchmark artifacts (store externally or in an artifact service)
+artifacts/**
+!artifacts/.gitkeep
+
+# Editor and OS files
+.DS_Store
+.idea/
+.vscode/
