@@ -269,7 +269,7 @@ The canonical conceptual JSON action is:
   "type": "play",
   "hand_slot": 1,
   "x_tile": 8.25,
-  "y_tile": 17.50
+  "y_tile": 17.75
 }
 
 Coordinates are in the acting player's own frame, with x increasing right and y increasing from own back line toward the opponent. A wait action has only type=wait. Ability actions identify the publicly available button index.
