@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://royalebench.org/schemas/action.v1.schema.json",
+  "$id": "urn:royalebench:action:v1",
   "title": "RoyaleBench Action v1",
   "description": "One action submitted by one seat for one benchmark decision. Coordinate quantization is declared by the match manifest and enforced by the runner.",
   "oneOf": [
