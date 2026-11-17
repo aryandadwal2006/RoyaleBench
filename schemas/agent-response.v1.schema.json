@@ -29,12 +29,50 @@
       "pattern": "^[a-f0-9]{64}$"
     },
     "action": {
-      "$ref": "urn:royalebench:action:v1"
+      "$ref": "#/$defs/Action"
     },
     "telemetry": {
       "type": "object",
       "description": "Optional model-specific diagnostics. Never used for scoring.",
       "additionalProperties": true
+    }
+  },
+  "$defs": {
+    "Action": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["schema", "type"],
+          "properties": {
+            "schema": { "const": "royalebench.action.v1" },
+            "type": { "const": "wait" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["schema", "type", "hand_slot", "expected_card", "x_tile", "y_tile"],
+          "properties": {
+            "schema": { "const": "royalebench.action.v1" },
+            "type": { "const": "play" },
+            "hand_slot": { "type": "integer", "minimum": 0, "maximum": 3 },
+            "expected_card": { "type": "string", "minLength": 1 },
+            "x_tile": { "type": "number", "minimum": 0, "exclusiveMaximum": 18 },
+            "y_tile": { "type": "number", "minimum": 0, "exclusiveMaximum": 32 }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["schema", "type", "button"],
+          "properties": {
+            "schema": { "const": "royalebench.action.v1" },
+            "type": { "const": "ability" },
+            "button": { "type": "integer", "minimum": 0, "maximum": 1 }
+          }
+        }
+      ]
     }
   }
 }
