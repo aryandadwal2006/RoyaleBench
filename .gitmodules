@@ -1,0 +1,9 @@
+[submodule "third_party/upstream/crforge"]
+	path = third_party/upstream/crforge
+	url = https://github.com/voonhous/crforge.git
+[submodule "third_party/upstream/royalegym"]
+	path = third_party/upstream/royalegym
+	url = https://github.com/RoyaleGym/RoyaleGym.git
+[submodule "third_party/upstream/royalesim"]
+	path = third_party/upstream/royalesim
+	url = https://github.com/RoyaleGym/RoyaleSim.git
