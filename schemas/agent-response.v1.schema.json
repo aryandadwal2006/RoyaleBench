@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:royalebench:agent-response:v1",
+  "title": "RoyaleBench Agent Response v1",
+  "description": "Transport envelope for an agent response. The runner verifies request identity before validating or executing the nested action.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "request_id",
+    "decision_id",
+    "observation_hash",
+    "action"
+  ],
+  "properties": {
+    "schema": {
+      "const": "royalebench.agent-response.v1"
+    },
+    "request_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "decision_id": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "observation_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "action": {
+      "$ref": "./action.v1.schema.json"
+    },
+    "telemetry": {
+      "type": "object",
+      "description": "Optional model-specific diagnostics. Never used for scoring.",
+      "additionalProperties": true
+    }
+  }
+}
