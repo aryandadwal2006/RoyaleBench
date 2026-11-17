@@ -19,11 +19,11 @@ This repository is at the architecture and bootstrap stage. The initial design i
 
 ## Repository layout
 
-See [the architecture document](docs/ARCHITECTURE.md). The intended layout separates the engine adapter, observation/memory layer, agent SDK, tournament runner, evaluation, visualizer integration, schemas, and optional human interface.
+Start with [the architecture](docs/ARCHITECTURE.md), [agent protocol](docs/AGENT_PROTOCOL.md), [reuse plan](docs/REUSE_PLAN.md), and [implementation roadmap](docs/ROADMAP.md). The intended layout separates the engine adapter, observation/memory layer, agent SDK, tournament runner, evaluation, visualizer integration, schemas, and optional human interface.
 
 ## Upstream references
 
-The upstream implementations are not silently copied into RoyaleBench's own source tree. They are pinned under third_party/upstream as Git submodules so their exact source and licenses remain inspectable. See [third_party/README.md](third_party/README.md).
+The upstream implementations are not silently copied into RoyaleBench's own source tree. They are pinned under third_party/upstream as Git submodules so their exact source and licences remain inspectable. Clone with submodules using git clone --recurse-submodules https://github.com/aryandadwal2006/RoyaleBench.git. See [third_party/README.md](third_party/README.md).
 
 ## Safety and scope
 
