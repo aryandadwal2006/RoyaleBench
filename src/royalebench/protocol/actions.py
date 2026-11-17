@@ -8,7 +8,7 @@ It never snaps or repairs an agent action.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from math import isclose
+from math import isclose, isfinite
 from typing import TypeAlias
 
 
@@ -62,6 +62,15 @@ class ActionResolution:
     offset_tiles: float
     step_tiles: float
 
+    def __post_init__(self) -> None:
+        if not self.resolution_id.strip():
+            raise ValueError("resolution_id must be non-empty")
+        values = (self.offset_tiles, self.step_tiles)
+        if any(isinstance(value, bool) or not isfinite(float(value)) for value in values):
+            raise ValueError("coordinate resolution values must be finite numbers")
+        if self.step_tiles <= 0 or not 0 <= self.offset_tiles < self.step_tiles:
+            raise ValueError("coordinate resolution requires 0 <= offset < step and step > 0")
+
     @classmethod
     def tile_center(cls) -> ActionResolution:
         return cls("tile-center-v1", offset_tiles=0.5, step_tiles=1.0)
@@ -104,10 +113,6 @@ def _validate_coordinate(
     if not 0.0 <= coordinate < float(limit):
         raise ActionValidationError(
             f"{axis}_tile={coordinate} is outside [0, {limit})"
-        )
-    if not ((coordinate - offset) / step >= -1e-8):
-        raise ActionValidationError(
-            f"{axis}_tile={coordinate} is not on {resolution_id}"
         )
     grid_position = (coordinate - offset) / step
     if not isclose(grid_position, round(grid_position), rel_tol=0.0, abs_tol=1e-7):
