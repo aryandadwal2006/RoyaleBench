@@ -29,7 +29,7 @@
       "pattern": "^[a-f0-9]{64}$"
     },
     "action": {
-      "$ref": "./action.v1.schema.json"
+      "$ref": "urn:royalebench:action:v1"
     },
     "telemetry": {
       "type": "object",
