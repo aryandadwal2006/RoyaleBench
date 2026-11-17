@@ -19,7 +19,7 @@ This repository is at the architecture and bootstrap stage. The initial design i
 
 ## Repository layout
 
-Start with [the architecture](docs/ARCHITECTURE.md), [agent protocol](docs/AGENT_PROTOCOL.md), [target repo structure](docs/REPO_STRUCTURE.md), [architecture decisions](docs/DECISIONS.md), [reuse plan](docs/REUSE_PLAN.md), and [implementation roadmap](docs/ROADMAP.md). The intended layout separates the engine adapter, observation/memory layer, agent SDK, tournament runner, evaluation, visualizer integration, schemas, and optional human interface.
+Start with [the architecture](docs/ARCHITECTURE.md), [agent protocol](docs/AGENT_PROTOCOL.md), [world-model plugin API](docs/WORLD_MODEL_API.md), [target repo structure](docs/REPO_STRUCTURE.md), [architecture decisions](docs/DECISIONS.md), [reuse plan](docs/REUSE_PLAN.md), and [implementation roadmap](docs/ROADMAP.md). The intended layout separates the engine adapter, observation/memory layer, agent SDK, tournament runner, evaluation, visualizer integration, schemas, and optional human interface.
 
 ## Upstream references
 
