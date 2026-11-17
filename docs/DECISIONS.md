@@ -60,7 +60,7 @@ These are current design decisions for RoyaleBench v1. They can change only thro
 
 **Status:** Proposed target; acceptance test required.
 
-**Decision:** The desired v1 action resolution is a 36 × 64 half-tile lattice, expressed as integer grid indices, using the engine's native placement search. The current crforge Python action schema is 18 × 32 tile-centre; it does not already expose the half-tile grid.
+**Decision:** The desired v1 action resolution is a 36 × 64 half-tile lattice. The agent expresses a cell centre as x_tile/y_tile in board-tile units (0.25, 0.75, 1.25, ... horizontally; 0.25, 0.75, ... vertically); the adapter maps those values to integer routing-cell coordinates and uses the engine's native placement search. The current crforge Python action schema is 18 × 32 tile-centre; it does not already expose the half-tile grid.
 
 **Reasons:** Placement location is strategically important. Half-tile action granularity is a practical common interface for LLMs, RL policies and world-model planners and has a precedent in RoyaleGym's action design. It avoids an enormous continuous-action search while offering finer control than tile-centre actions.
 
