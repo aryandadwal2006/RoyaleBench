@@ -87,3 +87,14 @@ These are current design decisions for RoyaleBench v1. They can change only thro
 **Reasons:** A structured state input and a screenshot are different tasks; a forecasting model and a complete controller are different artifacts; paused-clock and real-time matches measure different capabilities.
 
 **Consequences:** Publish cross-play matrices and shared baselines where meaningful, but only compare within declared compatible tracks.
+
+
+## ADR-0009: Use Glicko-2 for 1v1 competitive ratings
+
+**Status:** Accepted.
+
+**Decision:** Use Glicko-2 for the primary 1v1 rating. Initial parameters: rating 1500, rating deviation 350, volatility 0.06, tau 0.5. Update at the end of complete published rating periods, using the full batch of match results against pre-period opponent ratings.
+
+**Reasons:** RoyaleBench v1 is a two-player competitive benchmark. Glicko-2 explicitly tracks uncertainty and rating volatility; raw win percentage alone is unstable when submissions have different match counts.
+
+**Consequences:** Every leaderboard exposes rating deviation, match count, W/D/L and confidence intervals. A paired side-swap contributes both games to the rating-period result set. Publish the rating-period definition and exact implementation/version. Ratings remain separate by observation modality, latency mode, action-resolution version and deck stratum.
