@@ -69,6 +69,21 @@ A later assisted-visual subtrack may add the public-memory block, but it must be
 
 ## 5. Action response
 
+Every act request carries a unique request_id, monotonically increasing decision_id and SHA-256 observation_hash. The agent must echo all three in the response envelope:
+
+{
+  "schema": "royalebench.agent-response.v1",
+  "request_id": "opaque-request-id",
+  "decision_id": 328,
+  "observation_hash": "64-character-lowercase-sha256",
+  "action": {
+    "schema": "royalebench.action.v1",
+    "type": "wait"
+  }
+}
+
+The runner accepts a response only for the outstanding request and matching observation hash. The envelope is defined by schemas/agent-response.v1.schema.json; the nested action is defined by schemas/action.v1.schema.json.
+
 The action schema is a one-of:
 - wait;
 - play a hand slot at a point in the acting player's own arena frame;
