@@ -35,3 +35,27 @@ RoyaleBench targets offline simulation and human-operated play in its own resear
 - Higher-resolution / continuous placement is a proposed extension, not an existing crforge feature.
 - The shared observation and memory protocol still needs implementation and tests against the canonical engine.
 - Game data tables and original game assets are not bundled. Their provenance and redistribution permissions require separate review.
+
+
+## Implemented bootstrap
+
+The initial engine-independent Python protocol scaffold is present:
+- typed wait/play/ability action objects;
+- action-resolution validation for tile-centre and half-tile coordinates;
+- request-bound response validation using request ID, decision ID and observation hash;
+- unit tests for malformed actions, invalid coordinates and stale/mismatched responses;
+- GitHub Actions workflow for pytest and Ruff on Python 3.11/3.12.
+
+This does **not** yet include a running crforge adapter, ObservationV1 builder, match runner, memory tracker, tournament scheduler or Glicko-2 implementation. Those are explicitly gated in the [roadmap](docs/ROADMAP.md). The half-tile validator is protocol code only; the crforge 36 × 64 action schema/mask patch still needs to be implemented and accepted against native placement tests.
+
+Install the protocol scaffold locally:
+
+```bash
+git clone --recurse-submodules https://github.com/aryandadwal2006/RoyaleBench.git
+cd RoyaleBench
+python -m pip install -e ".[dev]"
+python -m pytest
+python -m ruff check src tests
+```
+
+The GitHub Actions checks run on pushes and pull requests. The pinned upstream source trees are retrieved by the recursive clone/bootstrap script; they are not duplicated into the RoyaleBench package.
