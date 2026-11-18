@@ -10,7 +10,7 @@
     "request_id": {"type": "string", "minLength": 1},
     "observation_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "horizon_ticks": {"type": "integer", "minimum": 1},
-    "observation": {"$ref": "observation.v1.schema.json"},
-    "action": {"$ref": "action.v1.schema.json"}
+    "observation": {"$ref": "urn:royalebench:observation:v1"},
+    "action": {"$ref": "urn:royalebench:action:v1"}
   }
 }
