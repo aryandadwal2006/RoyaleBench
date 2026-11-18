@@ -1,6 +1,6 @@
 # RoyaleBench v1 Implementation Status
 
-**Status:** Core benchmark implementation is in place; final local CRForge acceptance and research evaluation remain outstanding.
+**Status:** Core benchmark implementation is in place. The upstream CRForge Gradle test task has passed on the user's Windows machine; final headless adapter acceptance and research evaluation remain outstanding.
 
 This roadmap distinguishes code that exists from evidence that it has been validated against the pinned native engine. A checked implementation item does not imply that the user's Windows installation or the upstream CRForge test suite has passed.
 
@@ -51,8 +51,9 @@ Visual agents, real-time wall-clock competition, deck construction, alternate-en
 - [x] Void matches if either seat reports omitted visible entities (`entity_overflow > 0`); reject missing or invalid overflow metadata.
 - [x] Test match voiding for overflow in reset and later observations.
 - [x] Wire the pinned upstream `:env:test` observation/elixir suite into final Windows acceptance.
-- [ ] Execute the native and RoyaleBench integration suites against the pinned local CRForge build.
-- [ ] Add a direct hidden hand/queue/elixir mutation fixture, if safely exposed by the native engine.
+- [x] Execute the pinned upstream CRForge `:env:test` task on Windows (2026-11-18; Gradle reported `BUILD SUCCESSFUL`).
+- [ ] Execute RoyaleBench's three native Python integration tests against the installed CRForge distribution; they were skipped in the partial run because `-SkipBuild` left `env/build/install/env` without runtime JARs.
+- [ ] Consider a direct hidden hand/queue/elixir mutation fixture if the native engine exposes a safe isolated fixture; this is additional audit hardening, not a reason to expand v1 scope.
 
 ### Agent SDK and execution
 
@@ -100,39 +101,47 @@ Visual agents, real-time wall-clock competition, deck construction, alternate-en
 - [x] Keep outcomes and future observations outside the predictor call; test the action-prefix input contract.
 - [x] Verify the dataset shard against its manifest SHA-256 and validate source/target observation hashes before forecasting.
 
-## Remaining release work
+## Remaining release and paper-evaluation work
 
-1. Add forecast event-timing metrics for public card plays and other event types where the observation contract exposes unambiguous event identities.
-2. Execute and reconcile the native two-seat FAIR and elixir tests.
-3. Reconcile FirstLight and Hasty policies: inspect pinned source, checkpoint availability, licences, input/output semantics and card/version compatibility. If adaptation is not defensible, document them as external references rather than forcing them into v1.
-4. Add canonical replay/result fingerprints and paper-ready CSV/JSON summaries.
-5. Add container isolation before accepting untrusted public submissions; the current subprocess boundary is not a security sandbox.
-6. Update the benchmark card and paper methods to reflect only implemented behaviour.
-7. Run the integrated Windows validation script once the implementation is frozen.
-8. Run a preregistered/pinned final tournament with enough independent seeds for meaningful uncertainty.
-9. Generate the paper's result tables, figures and limitations from saved artifacts.
+1. Complete the Windows integrated acceptance run so the three RoyaleBench native CRForge tests execute rather than skip, and both headless tournaments, dataset export and forecasting evaluation finish.
+2. Add forecast event-timing metrics only if they are central to the paper's stated world-model contribution; otherwise keep the persistence evaluator as a sanity baseline and do not expand v1.
+3. Reconcile FirstLight and Hasty policies only if a lossless ObservationV1/ActionV1 adapter, compatible game version, checkpoint provenance and licence can be established. Otherwise retain them as related-work references, not leaderboard baselines.
+4. Run a pinned paper evaluation with substantially more independent seed groups than the three-seed acceptance smoke test. Report W/D/L, seat-swap results, Glicko-2 rating deviation, seed-cluster uncertainty, failures and voids.
+5. Include at least one actual learned or hosted-model participant if the paper makes claims about learned/LLM agents. An adapter existing in the repository is not empirical evidence.
+6. Generate paper tables and figures from saved tournament artifacts; freeze model IDs, prompts, decoding settings and provider configuration for any hosted-model results.
+7. Treat canonical replay fingerprints and container isolation as release hardening only if needed by the chosen submission or public-submission threat model. They are not prerequisites for drafting the v1 paper.
 
 ## Final Windows acceptance
 
-Run once after pulling the completed implementation:
+After pulling the current `main`, run the complete first-time acceptance path:
 
 ```powershell
-python -m pip install -e ".[dev,engine]"
-python -m pip install -e .\third_party\upstream\crforge\python
+git pull origin main
+.\scripts\validate_v1.ps1
+```
+
+This path bootstraps the pinned submodules and invokes `build_engine.ps1`, which runs CRForge `:env:installDist` and `:tables:dataVersionTables`. The installed `env/build/install/env/lib` JARs are required by the headless Python adapter. The upstream `:env:test` task passing does **not** create that install distribution.
+
+Use `-SkipBuild` only after a successful engine build has already created the runtime JARs and game tables:
+
+```powershell
 .\scripts\validate_v1.ps1 -SkipBuild
 ```
 
-The integrated script must finish with:
+A complete run must finish with:
 - Pinned CRForge `:env:test` native environment suite passing.
-- RoyaleBench Python tests passing.
-- Ruff passing.
-- V1 config validation passing.
-- Real headless CRForge matches completing for both seats.
-- Tournament summary and per-match manifests/results written.
-- Non-empty train, validation and test trajectory splits with a valid dataset manifest.
-- A single validation report recording software versions, engine version/hash, match counts, split counts and output paths.
+- All RoyaleBench Python tests passing, including the three native CRForge integration tests without skips.
+- Ruff and v1 configuration validation passing.
+- Real headless CRForge matches completing for both seats in the paired baseline tournament and the external JSONL-worker tournament.
+- Non-empty train, validation and test trajectory splits with a valid dataset manifest and hashes.
+- Held-out persistence forecasting completing at horizons 1, 2 and 4.
+- A validation report recording software versions, engine version/hash, match counts, split counts and output paths.
 
-The user's desktop visualizer run establishes that the CRForge desktop runtime starts and supports manual play. It does not substitute for this headless acceptance test. The user's earlier note that some upstream tests failed remains unresolved until their test log is inspected.
+### Observed partial Windows run (2026-11-18)
+
+The user's run used Python 3.14.5, Java 21.0.13 and `-SkipBuild`. The pinned CRForge `:env:test` task completed with Gradle `BUILD SUCCESSFUL`; RoyaleBench's Python suite reported 114 passed and 3 skipped; Ruff and `config-check` passed. The three skips were `tests/test_crforge_native.py`, because the CRForge install distribution was absent. The first tournament then stopped before any match because no JARs existed under `env/build/install/env/lib`. This is an incomplete build/acceptance run, not evidence of a match-runner or agent failure. The validation script now checks for the missing runtime distribution and reports the required build command before entering the Python integration tests.
+
+The user's desktop visualizer run establishes that the CRForge desktop runtime starts and supports manual play. It does not substitute for headless adapter acceptance.
 
 ## Release definition
 
