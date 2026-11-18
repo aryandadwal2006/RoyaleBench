@@ -75,6 +75,33 @@ finally {
     Pop-Location
 }
 
+# :env:test builds and tests CRForge, but it does not create the installDist
+# distribution consumed by the headless Python adapter.
+$CrforgeInstall = Join-Path $CrforgeRoot "env\build\install\env"
+$CrforgeLib = Join-Path $CrforgeInstall "lib"
+$CrforgeJars = @(Get-ChildItem -Path $CrforgeLib -Filter "*.jar" -File -ErrorAction SilentlyContinue)
+$CrforgeTables = Join-Path $HOME ".crforge\tables\16.635.8"
+$NativeTestReport = Join-Path $CrforgeRoot "env\build\reports\tests\test\index.html"
+
+if (-not (Test-Path $NativeTestReport)) {
+    throw "CRForge Gradle test report is missing at $NativeTestReport."
+}
+if (-not (Test-Path $CrforgeInstall) -or $CrforgeJars.Count -eq 0) {
+    throw @"
+CRForge's headless runtime distribution is missing or contains no JARs:
+  $CrforgeLib
+The -SkipBuild switch skips :env:installDist, which creates this distribution.
+Run .\scripts\validate_v1.ps1 without -SkipBuild, or run
+.\scripts\build_engine.ps1 -Python $Python before using -SkipBuild.
+"@
+}
+if (-not (Test-Path $CrforgeTables)) {
+    throw "CRForge game tables are missing at $CrforgeTables. Run .\scripts\build_engine.ps1 -Python $Python."
+}
+Write-Host "CRForge runtime: $CrforgeInstall ($($CrforgeJars.Count) JAR files)"
+Write-Host "CRForge game tables: $CrforgeTables"
+Write-Host "CRForge native test report: $NativeTestReport"
+
 Write-Host "=== Python tests ==="
 & $Python -m pytest
 if ($LASTEXITCODE -ne 0) { throw "Python tests failed." }
@@ -146,7 +173,7 @@ $Report = [ordered]@{
     game_data_content_sha = "062a11e0500c03cc041f123413b1ef1846b539a4"
     profile = $Profile
     native_engine_tests = "passed"
-    native_engine_test_report = (Join-Path $CrforgeRoot "env\build\reports\tests\test\index.html")
+    native_engine_test_report = $NativeTestReport
     tournament = @{
         total_matches = $TournamentJson.total_matches
         completed_matches = $TournamentJson.completed_matches
