@@ -150,3 +150,64 @@ def test_invalid_agent_action_is_classified_as_agent_error(tmp_path):
     assert result.status == "agent_error"
     assert result.outcome == "void"
     assert result.fault["kind"] == "agent_error"
+
+
+
+class FinishAwareAgent(NoOpAgent):
+    name = "finish-aware-agent"
+
+    def __init__(self):
+        self.finished = None
+
+    def finish(self, result):
+        self.finished = result
+
+
+class AbortAwareAgent(DelayedAgent):
+    name = "abort-aware-agent"
+
+    def __init__(self):
+        self.aborted = False
+
+    def abort_pending(self):
+        self.aborted = True
+
+
+def test_runner_delivers_seat_scoped_match_end_result(tmp_path):
+    engine = FakeEngine()
+    left = FinishAwareAgent()
+    right = FinishAwareAgent()
+    runner = MatchRunner(engine, profile="test", profile_ticks=5)
+    result = runner.run(
+        (left, right),
+        seed=7,
+        match_id="finish-callback-test",
+        output_dir=tmp_path,
+    )
+
+    assert result.status == "completed"
+    assert left.finished is not None
+    assert left.finished["outcome"] == "draw"
+    assert left.finished["seat"] == 0
+    assert left.finished["crowns"] == [1, 1]
+    assert right.finished is not None
+    assert right.finished["seat"] == 1
+
+
+def test_runner_aborts_external_worker_on_shared_deadline(tmp_path):
+    engine = FakeEngine()
+    agent = AbortAwareAgent()
+    runner = MatchRunner(
+        engine,
+        profile="test",
+        profile_ticks=5,
+        request_timeout_s=0.01,
+    )
+    result = runner.run(
+        (agent, NoOpAgent()),
+        seed=7,
+        match_id="abort-worker-test",
+        output_dir=tmp_path,
+    )
+    assert result.status == "agent_error"
+    assert agent.aborted is True
