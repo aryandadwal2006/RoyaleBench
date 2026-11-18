@@ -59,6 +59,5 @@ These tests are implemented and included in the final validation path, but have 
 
 1. Execute `.\scripts\validate_v1.ps1` once against the pinned Windows build; reconcile any failures rather than weakening the gates.
 2. Add a direct native-state mutation test for hidden hand/queue/elixir while preserving the seat-visible state, if the engine exposes a safe and isolated fixture for such mutation.
-3. Exercise entity overflow deliberately at the v1 adapter boundary and record its handling; retain upstream coverage for tunnelling, projectiles, areas and partially revealed plays.
 
 Do not mark the native FAIR audit complete until the native and RoyaleBench integration tests pass on the pinned data version.
