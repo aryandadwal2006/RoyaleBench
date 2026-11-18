@@ -59,11 +59,18 @@ def _require_complete_observations(observations: tuple[dict[str, Any], dict[str,
         )
     for seat, observation in enumerate(observations):
         try:
-            overflow = int(observation.get("game", {}).get("entity_overflow", 0))
-        except (AttributeError, TypeError, ValueError) as exc:
+            game = observation["game"]
+            if not isinstance(game, dict) or "entity_overflow" not in game:
+                raise ValueError("entity_overflow is missing from game metadata")
+            overflow = int(game["entity_overflow"])
+        except (AttributeError, KeyError, TypeError, ValueError) as exc:
             raise EngineObservationError(
                 f"seat {seat} has no valid entity_overflow observation field"
             ) from exc
+        if overflow < 0:
+            raise EngineObservationError(
+                f"seat {seat} reports an invalid negative entity_overflow value: {overflow}"
+            )
         if overflow != 0:
             raise EngineObservationError(
                 f"seat {seat} observation omitted {overflow} visible entities; "
