@@ -226,8 +226,23 @@ def evaluate_forecaster(
                 if not isinstance(prediction, dict):
                     raise TypeError("forecaster.predict must return an ObservationV1 object")
                 metrics = _score_pair(prediction, actual)
-                for key, value in metrics.items():
-                    totals[horizon][key] += value
+                totals[horizon]["tower_hp_absolute_error"] += (
+                    metrics["tower_hp_mae"] * metrics["tower_hp_values"]
+                )
+                totals[horizon]["tower_hp_values"] += metrics["tower_hp_values"]
+                totals[horizon]["elixir_absolute_error"] += (
+                    metrics["elixir_mae"] * metrics["elixir_values"]
+                )
+                totals[horizon]["elixir_values"] += metrics["elixir_values"]
+                for key in (
+                    "entity_type_precision",
+                    "entity_type_recall",
+                    "entity_type_f1",
+                    "predicted_entity_count",
+                    "actual_entity_count",
+                    "entity_count_absolute_error",
+                ):
+                    totals[horizon][key] += metrics[key]
                 counts[horizon] += 1
 
     results = {}
@@ -237,9 +252,32 @@ def evaluate_forecaster(
             raise ValueError(
                 f"no examples available for horizon {horizon}; provide longer match trajectories"
             )
-        values = {}
-        for key, total in totals[horizon].items():
-            values[key] = total / count
+        aggregate = totals[horizon]
+        tower_values = aggregate["tower_hp_values"]
+        elixir_values = aggregate["elixir_values"]
+        values = {
+            "tower_hp_mae": (
+                aggregate["tower_hp_absolute_error"] / tower_values
+                if tower_values
+                else 0.0
+            ),
+            "tower_hp_values": tower_values,
+            "elixir_mae": (
+                aggregate["elixir_absolute_error"] / elixir_values
+                if elixir_values
+                else 0.0
+            ),
+            "elixir_values": elixir_values,
+        }
+        for key in (
+            "entity_type_precision",
+            "entity_type_recall",
+            "entity_type_f1",
+            "predicted_entity_count",
+            "actual_entity_count",
+            "entity_count_absolute_error",
+        ):
+            values[key] = aggregate[key] / count
         values["examples"] = count
         results[str(horizon)] = values
 
