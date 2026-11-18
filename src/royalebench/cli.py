@@ -59,6 +59,9 @@ def _agent_factories(
     external_agent_cwd: str | None = None,
     external_agent_env: dict[str, str] | None = None,
 ) -> dict[str, Any]:
+    if len(names) != len(set(names)):
+        raise ValueError("agent names in --agents must be unique")
+
     factories: dict[str, Any] = {
         "noop-v1": NoOpAgent,
         "random-legal-v1": RandomLegalAgent,
