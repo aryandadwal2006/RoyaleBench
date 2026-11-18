@@ -150,6 +150,10 @@ def build_observation(
         name: values(f"enemy_play_{name}")
         for name in ("card", "cast", "form", "ticks", "x", "y", "kind", "flags", "point_ticks")
     }
+    card_shown_bit = schema.play_flags.get("card_shown")
+    point_shown_bit = schema.play_flags.get("point_shown")
+    if card_shown_bit is None:
+        raise RuntimeError("CRForge schema does not expose the enemy-play card_shown flag")
     recent_plays = []
     for index in range(schema.enemy_play_rows):
         recent_plays.append(
@@ -162,6 +166,12 @@ def build_observation(
                 "y_units": play_fields["y"][index],
                 "kind": play_fields["kind"][index],
                 "flags": play_fields["flags"][index],
+                "card_shown": bool(play_fields["flags"][index] & card_shown_bit),
+                "point_shown": (
+                    bool(play_fields["flags"][index] & point_shown_bit)
+                    if point_shown_bit is not None
+                    else False
+                ),
                 "ticks_since_point_shown": play_fields["point_ticks"][index],
             }
         )
