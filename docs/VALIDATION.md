@@ -70,6 +70,12 @@ A subsequent full-build attempt on 2026-11-18 created the install distribution (
 
 The next run successfully resolved `jvm.dll` and reached the native adapter checks. All three then exposed the same card-name mismatch: the public card name `IceGolem` was not recognized because the pinned table uses the internal row name `IceGolemite`. The resolver now maps that display name to the exact pinned row, and a unit test locks the mapping for the complete Hog 2.6 deck (`IceGolemite`, `IceSpirits` and `Log` included). Full v1 acceptance remains pending a successful rerun.
 
+## Latest 2026-11-18 integration attempt
+
+The next full integration run completed all 6 paired baseline matches and passed all 118 Python tests, including the three native adapter tests, as well as Ruff and config-check. It then stopped before the external-worker match because Windows PowerShell stripped the embedded quotes from the JSON command argument. The validation script now writes the argv array to a UTF-8 JSON file and passes its path; the CLI accepts this file form and tests both the parser and mutual-exclusion behavior.
+
+Full v1 acceptance remains pending a successful rerun.
+
 ## Outputs
 
 Each run writes to a timestamped directory under `results/validation-YYYYMMDD-HHMMSS/`, including:
@@ -79,6 +85,7 @@ Each run writes to a timestamped directory under `results/validation-YYYYMMDD-HH
 - CRForge's Gradle HTML test report at `third_party/upstream/crforge/env/build/reports/tests/test/index.html`, including an explicit zero-skip gate for the native adapter tests
 - paired baseline tournament output
 - external JSONL-agent tournament output
+- `external-agent-command.json`, the exact worker argv used by the integration run
 - `trajectory_dataset/` with three compressed splits and a manifest
 - `forecast-persistence.json`
 
