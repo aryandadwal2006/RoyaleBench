@@ -42,7 +42,8 @@ Visual agents, real-time wall-clock competition, deck construction, alternate-en
 - [x] Validate hand-slot identity before encoding a play action.
 - [x] Reject invalid coordinates; do not silently snap or repair agent actions.
 - [x] Keep native placement search and command delay in CRForge.
-- [ ] Complete a field-by-field FAIR information audit and two-seat hidden-state leakage tests.
+- [x] Document field-level FAIR information provenance and converter-level hidden-field noninterference tests.
+- [ ] Complete two-seat hidden-state leakage and seat-frame tests against the native CRForge engine.
 - [ ] Add differential tests for opponent elixir estimation, including unsupported refunds/income mechanics.
 - [ ] Verify both seat coordinate transforms and the selected deck's placement mechanics against live CRForge runs.
 
@@ -93,7 +94,7 @@ Visual agents, real-time wall-clock competition, deck construction, alternate-en
 ## Remaining release work
 
 1. Add a documented learned-predictor adapter entry point and broaden forecasting metrics to entity identity, movement and event timing where CRForge exposes reliable stable identifiers.
-2. Finish protocol and FAIR observation audits, including hidden-state leakage and opponent-elixir accounting edge cases.
+2. Complete the native two-seat FAIR audit and verify opponent-elixir accounting under the exact fixed v1 deck.
 3. Reconcile FirstLight and Hasty policies: inspect pinned source, checkpoint availability, licences, input/output semantics and card/version compatibility. If adaptation is not defensible, document them as external references rather than forcing them into v1.
 4. Add canonical replay/result fingerprints and paper-ready CSV/JSON summaries.
 5. Add container isolation before accepting untrusted public submissions; the current subprocess boundary is not a security sandbox.
