@@ -28,17 +28,18 @@ The paper must therefore be more than a description of the existing code. It nee
 
 **Recommended central thesis:**
 
-> Aggregate win rates are an incomplete measure of strategic competence in partially observable, real-time competitive environments. Agent rankings can depend on opponent archetype, deck matchup, decision cadence and the ability to use public information. A benchmark should therefore pair competitive cross-play with controlled, simulator-grounded diagnostics of the decisions that produce those outcomes.
+> Aggregate win rates are an incomplete measure of strategic competence in partially observable, real-time competitive environments. Rankings can depend on opponent archetype, deck matchup, decision cadence and observation modality. A benchmark should therefore combine competitive cross-play with paired visual-versus-structured evaluation and simulator-grounded diagnostics that separate perception, temporal state estimation, action grounding and strategic choice.
 
 The proposed paper will combine:
 
-1. a reproducible, FAIR structured-state competitive environment;
+1. a reproducible, FAIR structured-state competitive environment with a separate deterministic visual-observation track;
 2. multiple verified deck archetypes and cross-matchups, not just one mirror matchup;
-3. a paired tournament methodology that controls seat assignment and simulator randomness;
-4. a simulator-grounded, counterfactual action-quality diagnostic;
-5. an empirical audit of learned, scripted and language-model agents across opponent and matchup shifts.
+3. a paired visual-versus-structured protocol using the same underlying states and, where possible, the same multimodal model family;
+4. competency diagnostics for resource management, opponent modelling, spatial reasoning, temporal planning and adaptation;
+5. a simulator-grounded, counterfactual action-quality diagnostic that estimates candidate-set regret under explicitly fixed continuations;
+6. an empirical audit of scripted, imitation-learned, RL, search-based, LLM and VLM agents across opponent and matchup shifts.
 
-The make-or-break research contribution is item 4 plus the scientific findings in item 5. A new game wrapper or a leaderboard alone is unlikely to be sufficiently distinctive.
+The make-or-break contribution is the causal decomposition of the visual-to-structured performance gap and the relationship between diagnostic competence and actual competitive outcomes. A new game wrapper or a leaderboard alone is unlikely to be sufficiently distinctive.
 
 ---
 
@@ -705,14 +706,17 @@ The full Cartesian experiment matrix is not a requirement to execute every possi
 
 - Full local v1 native acceptance, with all three CRForge native adapter tests executed.
 - Three validated archetypes, mirror and cross-archetype matchups, both seats and seed-clustered analysis.
-- One transparent deck-aware heuristic and one learned PPO policy in addition to the existing rules/random baselines.
-- At least one serious frozen LLM participant; two model families are strongly preferred when budget permits.
-- Deterministic replay-prefix reconstruction and the candidate-set regret diagnostic on a stratified state set.
+- A deterministic redistributable visual renderer and screenshot-only FAIR track, separate from the structured ObservationV1 track.
+- A same-model-family paired modality study on identical reconstructed states, with at least two VLM families if the API/compute budget permits.
+- Competency diagnostics for at least four dimensions: resource management, opponent modelling, spatial reasoning and temporal planning. Adaptation and long-horizon planning should be added if the scenario/replay tooling is reliable.
+- A transparent deck-aware heuristic, a short-horizon search baseline, an imitation-learning policy and one learned PPO policy, in addition to existing rules/random baselines.
+- At least one serious frozen LLM participant and at least one VLM participant; two or more model families per modality are preferred when budget permits.
+- Deterministic replay-prefix reconstruction and candidate-set regret on a stratified state set.
 - One controlled public-memory ablation.
 - Pilot-derived final sample size and paired score-difference intervals.
 - One reproducible command/script for the principal paper tables.
 
-A submission missing deterministic simulator validation, genuine cross-matchup evaluation or meaningful uncertainty is not rescued by adding more model names or a larger repository.
+A submission missing deterministic simulator validation, genuine cross-matchup evaluation, matched visual/structured comparisons or meaningful uncertainty is not rescued by adding more model names or a larger repository.
 
 ### Spotlight / award stretch
 
