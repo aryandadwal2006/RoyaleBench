@@ -36,7 +36,7 @@ def derive_opponent_cycle(
         play_count >= CYCLE_LENGTH
         and len(latest_four) == CYCLE_LENGTH
         and all(
-            row.get("card") in deck and (int(row.get("flags", 0)) & 1) != 0
+            row.get("card") in deck and row.get("card_shown") is True
             for row in latest_four
         )
         and len({str(row["card"]) for row in latest_four}) == CYCLE_LENGTH
