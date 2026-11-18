@@ -67,7 +67,8 @@ No tournament match, trajectory dataset or forecast was produced by that partial
 Each run writes to a timestamped directory under `results/validation-YYYYMMDD-HHMMSS/`, including:
 
 - `validation_report.json`
-- `pytest-junit.xml`, including an explicit zero-skip gate for the native adapter tests
+- `pytest-junit.xml`
+- CRForge's Gradle HTML test report at `third_party/upstream/crforge/env/build/reports/tests/test/index.html`, including an explicit zero-skip gate for the native adapter tests
 - paired baseline tournament output
 - external JSONL-agent tournament output
 - `trajectory_dataset/` with three compressed splits and a manifest
