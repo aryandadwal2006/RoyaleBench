@@ -47,4 +47,4 @@ After building the dataset, evaluate the persistence baseline on the held-out te
 python -m royalebench forecast-eval --split results/dataset/test.jsonl.gz --horizons 1,2,4 --output results/forecast-persistence.json
 ```
 
-The predictor receives only the starting ObservationV1 and the actions in the forecast interval. It does not receive match outcomes, target observations or future observations. The report records the input contract and the number of evaluated examples at each horizon. The persistence baseline is a sanity reference, not a learned world model.
+The predictor receives only the starting ObservationV1 and the actions in the forecast interval. It does not receive match outcomes, target observations or future observations. Before evaluation, the runner verifies the shard SHA-256 against dataset_manifest.json and recomputes both observation hashes in every transition. The report records the verified dataset provenance, input contract and number of evaluated examples at each horizon. The persistence baseline is a sanity reference, not a learned world model.
