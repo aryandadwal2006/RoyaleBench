@@ -19,6 +19,7 @@ from royalebench.observations import build_observation
 _CARD_ALIASES = {
     "thelog": ("thelog", "log"),
     "log": ("log", "thelog"),
+    "icegolem": ("icegolem", "icegolemite"),
     "icespirit": ("icespirit", "icespirits"),
 }
 
