@@ -23,41 +23,49 @@ Visual agents, real-time wall-clock ratings, multi-engine tournaments, deck-buil
 
 Requirements: Git, Python 3.11+, Java 21.
 
-\`\`\`powershell
+```powershell
 git clone --recurse-submodules https://github.com/aryandadwal2006/RoyaleBench.git
 cd RoyaleBench
 .\scripts\validate_v1.ps1
-\`\`\`
+```
 
 CRForge's game tables are built locally from its configured CDN asset source. Original data tables and game assets are not committed to RoyaleBench.
 
 ## Commands
 
-\`\`\`powershell
+```powershell
 python -m royalebench config-check
 python -m pytest
 python -m ruff check src tests
 python -m royalebench smoke
 python -m royalebench tournament --agents random-legal-v1,hog-cycle-rules-v1 --seeds 11,22
 python -m royalebench dataset --matches results/tournament/matches --output results/dataset
-\`\`\`
+```
 
-The integrated Windows acceptance script will run tests, a small paired tournament and dataset generation:
+The first integrated Windows acceptance run builds the pinned CRForge runtime distribution and game tables, runs native and Python tests, executes paired and external-agent tournaments, exports a trajectory dataset, and evaluates the persistence forecaster:
 
-\`\`\`powershell
+```powershell
 .\scripts\validate_v1.ps1
-\`\`\`
+```
+
+After one successful build, repeat validation without rebuilding the upstream runtime:
+
+```powershell
+.\scripts\validate_v1.ps1 -SkipBuild
+```
+
+**Important:** `-SkipBuild` skips `:env:installDist`, which creates the JARs required by headless tournaments. Use it only after `scripts/build_engine.ps1` has completed successfully. The validation script checks for this distribution and the pinned game tables before starting the Python integration suite.
 
 ## Optional LLM participant
 
 Set credentials in the current PowerShell session. No credentials are written to repository files:
 
-\`\`\`powershell
+```powershell
 $env:ROYALEBENCH_LLM_API_KEY = "..."
 $env:ROYALEBENCH_LLM_MODEL = "your-model-id"
 $env:ROYALEBENCH_LLM_BASE_URL = "https://api.openai.com/v1"
 python -m royalebench tournament --agents random-legal-v1,llm --seeds 11,22
-\`\`\`
+```
 
 The LLM adapter expects an OpenAI Chat Completions-compatible endpoint and JSON-object output. Configure a model identifier supported by your endpoint. Provider usage and client latency are recorded when returned by the endpoint.
 
