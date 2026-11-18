@@ -144,10 +144,6 @@ def test_initial_observations_reject_mismatched_v1_setup(mutation, message):
         item["opponent"] = dict(item["opponent"])
         item["own"]["towers"] = dict(item["own"]["towers"])
         item["opponent"]["towers"] = dict(item["opponent"]["towers"])
-        for tower in item["own"]["towers"].values():
-            tower.copy()
-        for tower in item["opponent"]["towers"].values():
-            tower.copy()
     # Make nested tower dictionaries independent before applying a one-field mutation.
     for item in observations:
         item["own"]["towers"] = {key: dict(value) for key, value in item["own"]["towers"].items()}
