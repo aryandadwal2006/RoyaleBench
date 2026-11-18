@@ -39,6 +39,8 @@ class FakeVector:
     ]
     mask_version = 1
     data_version = "16.635.8"
+    id_version = 2
+    max_elixir = 10
     content_sha = "test-content-sha"
     vocabulary_hash = "test-vocabulary-hash"
 
@@ -49,9 +51,15 @@ def raw_seat_view():
         "hand_cost": np.array([3, 4, 1, 2]),
         "hand_pending": np.zeros(4, dtype=np.int32),
         "hand_form": np.zeros(4, dtype=np.int32),
+        "hand_refill_ms": np.array([250]),
         "deck": np.arange(8),
+        "deck_slot": np.zeros(8, dtype=np.int32),
+        "deck_evolution": np.full(8, -1, dtype=np.int32),
+        "deck_level": np.full(8, 11, dtype=np.int32),
         "next_card": np.array([4]),
         "enemy_seen": np.array([], dtype=np.int32),
+        "enemy_seen_evolution": np.array([], dtype=np.int32),
+        "enemy_seen_evolution_need": np.array([], dtype=np.int32),
         "pending_count": np.array([0]),
         "pending_card": np.full(4, -1),
         "pending_x": np.zeros(4),
@@ -68,7 +76,11 @@ def raw_seat_view():
         "section": np.array([0]),
         "section_type": np.array([0]),
         "section_left_ms": np.array([100_000]),
+        "full_bar_ms": np.array([120_000]),
         "overtime": np.array([0]),
+        "play_open_in_ticks": np.array([0]),
+        "entity_count": np.array([0]),
+        "entity_overflow": np.array([0]),
         "decision_ticks": np.array([5]),
         "play_delay_ticks": np.array([20]),
         "result": np.array([0]),
@@ -95,7 +107,12 @@ def test_observation_exposes_normalized_elixir_but_not_hidden_state():
 
     assert observation["own"]["elixir"] == 5.0
     assert observation["own"]["elixir_reserved"] == 1.0
-    assert observation["own"]["hand"][0]["cost_elixir"] == 3.0
+    assert observation["own"]["hand"][0]["cost_elixir"] == 3
+    assert observation["own"]["hand_refill_ms"] == 250
+    assert observation["own"]["deck_level"] == [11] * 8
+    assert observation["game"]["full_bar_ms"] == 120_000
+    assert observation["game"]["play_open_in_ticks"] == 0
+    assert observation["game"]["entity_overflow"] == 0
     assert observation["opponent"]["estimated_elixir"] == 4.2
     assert observation["opponent"]["card_cycle"]["hand_exact"] is False
     assert observation["legal_actions"]["playable_slots"] == [0]
