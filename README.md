@@ -26,8 +26,7 @@ Requirements: Git, Python 3.11+, Java 21.
 \`\`\`powershell
 git clone --recurse-submodules https://github.com/aryandadwal2006/RoyaleBench.git
 cd RoyaleBench
-.\scripts\bootstrap_upstreams.ps1
-.\scripts\build_engine.ps1
+.\scripts\validate_v1.ps1
 \`\`\`
 
 CRForge's game tables are built locally from its configured CDN asset source. Original data tables and game assets are not committed to RoyaleBench.
@@ -110,10 +109,11 @@ This process boundary limits accidental credential exposure and provides startup
 - [Benchmark card and limitations](docs/BENCHMARK_CARD.md)
 - [FAIR observation provenance audit](docs/FAIRNESS_AUDIT.md)
 - [Implementation roadmap and acceptance gates](docs/ROADMAP.md)
+- [Windows validation and troubleshooting](docs/VALIDATION.md)
 
 ## Repository status
 
-The CRForge adapter, ObservationV1 converter, public-memory cycle tracker, action protocol, baseline agents, concurrent match runner, Glicko-2 ratings, paired tournament runner, OpenAI-compatible LLM adapter, JSONL subprocess adapter, match-level trajectory exporter, tournament provenance manifest and persistence-based multi-horizon forecasting evaluator are implemented. These components still require the final local acceptance run against your installed CRForge build. The persistence predictor is a sanity baseline, not a learned world model. External pretrained checkpoints are not included in the official leaderboard until their observation/action adapters pass compatibility and reproducibility checks.
+The CRForge adapter, ObservationV1 converter, public-memory cycle tracker, action protocol, baseline agents, concurrent match runner, Glicko-2 ratings, paired tournament runner, OpenAI-compatible LLM adapter, JSONL subprocess adapter, match-level trajectory exporter, tournament provenance manifest and persistence-based multi-horizon forecasting evaluator are implemented. CI passes the Python test suite and Ruff checks. The final local Windows acceptance remains pending: the 2026-11-18 partial run passed the upstream Gradle test task, Python tests (114 passed, 3 native integration tests skipped), Ruff and configuration validation, but the headless tournament did not start because `-SkipBuild` had skipped creation of the CRForge install distribution. Run the full validation command above without `-SkipBuild`. The persistence predictor is a sanity baseline, not a learned world model. External pretrained checkpoints are not included in the official leaderboard until their observation/action adapters pass compatibility and reproducibility checks.
 
 See [docs/ROADMAP.md](docs/ROADMAP.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
