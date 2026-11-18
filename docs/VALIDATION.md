@@ -56,6 +56,10 @@ The pinned game tables are expected under:
 
 The validation script checks for the runtime JARs and game tables before starting the RoyaleBench Python integration suite. The Gradle `:env:test` task builds/runs upstream tests but does **not** create the `:env:installDist` distribution. A successful Gradle test task is therefore not a substitute for the installed runtime.
 
+## Bootstrap script regression check
+
+GitHub Actions now runs a Windows job that parses all three PowerShell scripts and executes the pinned-submodule bootstrap. The job passed after the submodule comparison/parser fixes. This confirms PowerShell syntax and the three gitlink checks on a clean Windows runner; it does not build the Java runtime or replace the user's full local acceptance run.
+
 ## Interpreting the 2026-11-18 partial run
 
 The observed Windows run used Python 3.14.5, Java 21.0.13 and the `-SkipBuild` switch. The pinned CRForge `:env:test` task completed with `BUILD SUCCESSFUL`; the Python suite reported 114 passed and 3 skipped; Ruff and `config-check` passed. The three skipped tests were RoyaleBench's native adapter tests in `tests/test_crforge_native.py`, because the CRForge install distribution was absent. The headless tournament then stopped before starting a match because no JARs existed in `env/build/install/env/lib`.
