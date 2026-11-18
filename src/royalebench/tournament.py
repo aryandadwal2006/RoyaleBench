@@ -239,6 +239,7 @@ class TournamentRunner:
                     "losses",
                     "score",
                     "score_ci95",
+                    "score_ci_method",
                 ],
             )
             writer.writeheader()
