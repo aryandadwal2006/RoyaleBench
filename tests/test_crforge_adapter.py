@@ -1,15 +1,18 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
-from royalebench.config import V1Config
+from royalebench.config import V1_CONTENT_SHA, V1Config
 from royalebench.engine.crforge import (
     CrforgeEngineError,
+    _validate_game_data_identity,
     _validate_initial_observations,
     _validate_runtime_metadata,
+    _verify_upstream_checkout,
 )
 
 
@@ -25,16 +28,7 @@ def _metadata(**overrides):
 
 
 def _observations():
-    deck = [
-        "Cannon",
-        "Fireball",
-        "HogRider",
-        "IceGolem",
-        "IceSpirit",
-        "Musketeer",
-        "Skeletons",
-        "Log",
-    ]
+    deck = list(V1Config().deck)
     seats = []
     for seat in (0, 1):
         seats.append(
@@ -110,10 +104,37 @@ def test_runtime_metadata_requires_effective_config():
         )
 
 
+def test_game_data_identity_accepts_exact_locked_version_and_content():
+    _validate_game_data_identity(
+        "16.635.8",
+        V1_CONTENT_SHA,
+        expected_version="16.635.8",
+    )
+
+
+@pytest.mark.parametrize(
+    ("version", "content_sha", "expected_version", "message"),
+    [
+        ("16.635.3", V1_CONTENT_SHA, "16.635.8", "version mismatch"),
+        ("16.635.8", "0" * 40, "16.635.8", "content SHA mismatch"),
+        ("16.635.8", V1_CONTENT_SHA, "16.635.3", "v1 cannot target"),
+    ],
+)
+def test_game_data_identity_rejects_version_or_content_drift(
+    version, content_sha, expected_version, message
+):
+    with pytest.raises(CrforgeEngineError, match=message):
+        _validate_game_data_identity(
+            version,
+            content_sha,
+            expected_version=expected_version,
+        )
+
+
 def test_initial_observations_accept_equal_mirrored_match():
     _validate_initial_observations(
         _observations(),
-        deck_rows=tuple(_observations()[0]["own"]["deck"]),
+        deck_rows=tuple(V1Config().deck),
         config=V1Config(),
         decision_ticks=5,
     )
@@ -123,10 +144,15 @@ def test_initial_observations_accept_equal_mirrored_match():
     ("mutation", "message"),
     [
         (lambda obs: obs[0].update(seat=1), "observation slot 0"),
+        (lambda obs: obs[0]["game"].update(tick=5), "tick 0"),
         (lambda obs: obs[1]["own"].update(deck_level=[10] * 8), "deck levels"),
-        (lambda obs: obs[0]["own"].update(deck=obs[0]["own"]["deck"][:-1]), "different from"),
+        (lambda obs: obs[0]["own"].update(deck=obs[0]["own"]["deck"][:-1]), "frozen v1 deck"),
         (lambda obs: obs[0]["game"].update(decision_ticks=20), "decision_ticks"),
         (lambda obs: obs[1]["game"].update(play_delay_ticks=10), "play_delay_ticks"),
+        (
+            lambda obs: obs[0]["own"]["towers"]["own_king"].update(max_hp=4999),
+            "king tower",
+        ),
         (
             lambda obs: obs[0]["opponent"]["towers"]["enemy_right"].update(max_hp=2500),
             "princess tower max HP",
@@ -143,7 +169,64 @@ def test_initial_observations_reject_mismatched_v1_setup(mutation, message):
     with pytest.raises(CrforgeEngineError, match=message):
         _validate_initial_observations(
             tuple(observations),
-            deck_rows=tuple(_observations()[0]["own"]["deck"]),
+            deck_rows=tuple(V1Config().deck),
             config=V1Config(),
             decision_ticks=5,
         )
+
+
+def test_initial_observations_reject_seat_deck_disagreement():
+    observations = [dict(row) for row in _observations()]
+    observations[1] = deepcopy(observations[1])
+    observations[1]["own"]["deck"] = list(reversed(V1Config().deck))
+
+    with pytest.raises(CrforgeEngineError, match="same mirrored v1 deck"):
+        _validate_initial_observations(
+            tuple(observations),
+            deck_rows=tuple(V1Config().deck),
+            config=V1Config(),
+            decision_ticks=5,
+        )
+
+
+def test_upstream_checkout_verifies_the_exact_pinned_commit(tmp_path, monkeypatch):
+    source = tmp_path / "crforge"
+    install = source / "env" / "build" / "install" / "env"
+    install.mkdir(parents=True)
+    (source / ".git").write_text("gitdir: ../.git/modules/crforge\n", encoding="utf-8")
+    (source / "gradlew.bat").write_text("@echo off\n", encoding="utf-8")
+    completed = SimpleNamespace(
+        returncode=0,
+        stdout=V1Config().upstream_commit + "\n",
+        stderr="",
+    )
+    monkeypatch.setattr(
+        "royalebench.engine.crforge.subprocess.run",
+        lambda *args, **kwargs: completed,
+    )
+
+    assert _verify_upstream_checkout(install, V1Config().upstream_commit) == source.resolve()
+
+
+def test_upstream_checkout_rejects_a_different_commit(tmp_path, monkeypatch):
+    source = tmp_path / "crforge"
+    install = source / "env" / "build" / "install" / "env"
+    install.mkdir(parents=True)
+    (source / ".git").write_text("gitdir: ../.git/modules/crforge\n", encoding="utf-8")
+    (source / "gradlew.bat").write_text("@echo off\n", encoding="utf-8")
+    completed = SimpleNamespace(returncode=0, stdout="0" * 40 + "\n", stderr="")
+    monkeypatch.setattr(
+        "royalebench.engine.crforge.subprocess.run",
+        lambda *args, **kwargs: completed,
+    )
+
+    with pytest.raises(CrforgeEngineError, match="source commit mismatch"):
+        _verify_upstream_checkout(install, V1Config().upstream_commit)
+
+
+def test_upstream_checkout_requires_a_verifiable_source_tree(tmp_path):
+    install = tmp_path / "untracked-install" / "env"
+    install.mkdir(parents=True)
+
+    with pytest.raises(CrforgeEngineError, match="could not locate"):
+        _verify_upstream_checkout(install, V1Config().upstream_commit)
