@@ -148,6 +148,7 @@ The user's desktop visualizer run establishes that the CRForge desktop runtime s
 The non-empirical paper sections can be drafted now: motivation, related work, benchmark design, observation/action contracts, simulator integration, tournament protocol, dataset construction and limitations. Keep the results section provisional until the complete local acceptance run and a larger frozen evaluation have finished.
 
 Keep claims aligned with the implemented v1: one pinned CRForge build and game-data fingerprint, one mirrored Hog 2.6 deck at equal levels, structured FAIR observations, an 18 × 32 tile-centre action interface and paused-clock decision cadences. The persistence predictor is a sanity baseline, not a trained world model. Do not claim multi-deck, multi-engine, visual-agent, real-time or broad strategic-intelligence coverage. Treat RoyaleGym/RoyaleSim and other Clash Royale environments as related work rather than claiming RoyaleBench is the first such environment.
+
 ## Release definition
 
 RoyaleBench v1 is complete only when the core implementation above passes the local integration gates, its tournament protocol is reproducible, the FAIR observation contract is tested, and the paper's claims match the generated evidence. The roadmap intentionally does not require visual, real-time, multi-engine, deck-building or large-scale training infrastructure.
