@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import difflib
 import re
+import subprocess
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -11,7 +12,7 @@ from typing import Any
 
 import numpy as np
 
-from royalebench.config import V1Config
+from royalebench.config import V1_CONTENT_SHA, V1Config
 from royalebench.engine.actions import to_crforge_action
 from royalebench.observations import build_observation
 
@@ -52,6 +53,45 @@ def _resolve_deck_rows(deck: Sequence[str], vocabulary: Sequence[str]) -> tuple[
 
 class CrforgeEngineError(RuntimeError):
     """CRForge could not start or complete a benchmark battle."""
+
+
+def _verify_upstream_checkout(install: str | Path, expected_commit: str) -> Path:
+    """Find the source checkout that built the installed env and verify its exact commit."""
+    install_path = Path(install).expanduser().resolve()
+    candidates = (install_path, *install_path.parents)
+    source_root = next(
+        (
+            candidate
+            for candidate in candidates
+            if (candidate / ".git").exists()
+            and ((candidate / "gradlew").is_file() or (candidate / "gradlew.bat").is_file())
+        ),
+        None,
+    )
+    if source_root is None:
+        raise CrforgeEngineError(
+            f"could not locate the CRForge source checkout above install path {install_path}; "
+            "v1 requires a verifiable pinned source checkout"
+        )
+    try:
+        completed = subprocess.run(
+            ["git", "-C", str(source_root), "rev-parse", "HEAD"],
+            capture_output=True,
+            check=False,
+            text=True,
+            timeout=10,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise CrforgeEngineError(f"could not verify CRForge source commit: {exc}") from exc
+    if completed.returncode != 0:
+        detail = completed.stderr.strip() or f"git exited with {completed.returncode}"
+        raise CrforgeEngineError(f"could not verify CRForge source commit: {detail}")
+    actual_commit = completed.stdout.strip()
+    if actual_commit != expected_commit:
+        raise CrforgeEngineError(
+            f"CRForge source commit mismatch: v1 requires {expected_commit}, got {actual_commit}"
+        )
+    return source_root
 
 
 @dataclass(frozen=True, slots=True)
@@ -182,6 +222,7 @@ class CrforgeBattle:
         decision_ticks: int = 5,
         expected_data_version: str | None = None,
     ) -> None:
+        self.upstream_root = _verify_upstream_checkout(install, config.upstream_commit)
         try:
             from crforge_env import LadderConfig, VectorBattle
         except ImportError as exc:
@@ -241,6 +282,13 @@ class CrforgeBattle:
             self.close()
             raise CrforgeEngineError(
                 f"game-data version mismatch: expected {wanted_version}, got {actual}"
+            )
+
+        if self.vector.content_sha != V1_CONTENT_SHA:
+            actual_sha = self.vector.content_sha
+            self.close()
+            raise CrforgeEngineError(
+                f"game-data content SHA mismatch: expected {V1_CONTENT_SHA}, got {actual_sha}"
             )
 
         try:
