@@ -8,10 +8,10 @@ import json
 import random
 import re
 import statistics
-from collections import defaultdict
-from datetime import UTC, datetime
 from collections.abc import Callable
+from collections import defaultdict
 from contextlib import suppress
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -105,7 +105,8 @@ class TournamentRunner:
         if existing_outputs:
             names = ", ".join(str(path) for path in existing_outputs)
             raise FileExistsError(
-                f"tournament output already exists ({names}); choose a new tournament output directory"
+                f"tournament output already exists ({names}); "
+                "choose a new tournament output directory"
             )
         matches_dir.mkdir(parents=True, exist_ok=True)
 
