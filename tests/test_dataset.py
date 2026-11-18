@@ -46,7 +46,7 @@ def test_dataset_splits_complete_matches_without_leakage(tmp_path):
     first = build_dataset(matches, output, split_seed=12)
     second = build_dataset(matches, output, split_seed=12)
 
-    groups = [set(row["matches"]) for row in first["splits"].values()]
+    groups = [set(row["seed_groups"]) for row in first["splits"].values()]
     assert not (groups[0] & groups[1])
     assert not (groups[0] & groups[2])
     assert not (groups[1] & groups[2])
@@ -56,14 +56,33 @@ def test_dataset_splits_complete_matches_without_leakage(tmp_path):
     assert (output / "dataset_manifest.json").exists()
 
 
-def test_dataset_requires_three_completed_matches(tmp_path):
+def test_paired_side_swapped_matches_share_the_same_split(tmp_path):
     matches = tmp_path / "matches"
     matches.mkdir()
-    for index in range(2):
-        write_match(matches, f"match-{index}", index)
+    for seed in range(3):
+        write_match(matches, f"pair-a-seed-{seed}-seat0", seed)
+        write_match(matches, f"pair-a-seed-{seed}-seat1", seed)
+
+    manifest = build_dataset(matches, tmp_path / "dataset")
+    groups = [set(row["seed_groups"]) for row in manifest["splits"].values()]
+    assert sorted(len(group) for group in groups) == [1, 1, 1]
+    for split in manifest["splits"].values():
+        for seed in split["seed_groups"]:
+            same_seed_matches = {
+                f"pair-a-seed-{seed}-seat0",
+                f"pair-a-seed-{seed}-seat1",
+            }
+            assert same_seed_matches.issubset(set(split["matches"]))
+
+
+def test_dataset_requires_three_distinct_seed_groups(tmp_path):
+    matches = tmp_path / "matches"
+    matches.mkdir()
+    write_match(matches, "pair-seat0", 1)
+    write_match(matches, "pair-seat1", 1)
     try:
         build_dataset(matches, tmp_path / "dataset")
     except ValueError as exc:
-        assert "at least three" in str(exc)
+        assert "three distinct simulator seed groups" in str(exc)
     else:
-        raise AssertionError("expected too-few-matches error")
+        raise AssertionError("expected too-few-seed-groups error")

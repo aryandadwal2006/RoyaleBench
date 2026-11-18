@@ -83,28 +83,42 @@ def _assign_splits(
         raise ValueError("test_fraction must be between zero and one")
     if validation_fraction + test_fraction >= 1.0:
         raise ValueError("validation and test fractions must sum to less than one")
-    if len(sources) < 3:
+
+    # All side-swapped matches and all agent pairings with the same deterministic
+    # simulator seed stay in one split. Splitting by match_id alone would leak a
+    # paired seed: the training split could contain one side assignment while the
+    # test split contains its exact mirrored counterpart.
+    by_seed: dict[int, list[MatchSource]] = defaultdict(list)
+    for source in sources:
+        by_seed[source.seed].append(source)
+    seed_groups = sorted(
+        by_seed,
+        key=lambda group_seed: hashlib.sha256(f"{seed}:{group_seed}".encode()).hexdigest(),
+    )
+    if len(seed_groups) < 3:
         raise ValueError(
-            "at least three completed matches are required to create non-empty "
-            "train, validation and test splits"
+            "at least three distinct simulator seed groups are required to create "
+            "non-empty train, validation and test splits; increase the tournament seed count"
         )
 
-    ordered = sorted(
-        sources,
-        key=lambda source: hashlib.sha256(
-            f"{seed}:{source.match_id}".encode()
-        ).hexdigest(),
-    )
-    validation_count = max(1, round(len(ordered) * validation_fraction))
-    test_count = max(1, round(len(ordered) * test_fraction))
-    train_count = len(ordered) - validation_count - test_count
+    validation_count = max(1, round(len(seed_groups) * validation_fraction))
+    test_count = max(1, round(len(seed_groups) * test_fraction))
+    train_count = len(seed_groups) - validation_count - test_count
     if train_count < 1:
-        raise ValueError("not enough complete matches for the requested split fractions")
+        raise ValueError("not enough distinct seed groups for the requested split fractions")
 
+    split_seeds = {
+        "train": seed_groups[:train_count],
+        "validation": seed_groups[train_count : train_count + validation_count],
+        "test": seed_groups[train_count + validation_count :],
+    }
     return {
-        "train": ordered[:train_count],
-        "validation": ordered[train_count : train_count + validation_count],
-        "test": ordered[train_count + validation_count :],
+        split: [
+            source
+            for group_seed in group_seeds
+            for source in sorted(by_seed[group_seed], key=lambda item: item.match_id)
+        ]
+        for split, group_seeds in split_seeds.items()
     }
 
 
@@ -230,6 +244,7 @@ def build_dataset(
             split: {
                 "path": path.name,
                 "matches": transition_matches[split],
+                "seed_groups": sorted({source.seed for source in split_sources[split]}),
                 "match_count": len(transition_matches[split]),
                 "transition_count": transition_counts[split],
                 "sha256": _file_sha256(path),

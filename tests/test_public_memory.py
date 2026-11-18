@@ -13,39 +13,44 @@ def rows(*cards):
 
 
 def test_cycle_is_uncertain_before_four_public_card_plays():
-    cycle = derive_opponent_cycle(DECK, rows("Cannon", "Fireball"), play_count=2)
+    history = rows("Cannon", "Fireball")
+    cycle = derive_opponent_cycle(DECK, history, play_count=2)
     assert cycle["hand_exact"] is False
-    assert set(cycle["hand_cards"]) == set(DECK) - {"Cannon", "Fireball"}
+    assert cycle["hand_cards"] is None
     assert cycle["queue_complete"] is False
 
 
-def test_four_recent_distinct_plays_identify_hand_set_and_queue():
-    cycle = derive_opponent_cycle(
-        DECK,
-        rows("TheLog", "Skeletons", "Musketeer", "IceSpirit"),
-        play_count=12,
-    )
+def test_four_recent_distinct_plays_in_oldest_first_order_identify_hand_set():
+    history = rows("TheLog", "Skeletons", "Musketeer", "IceSpirit")
+    cycle = derive_opponent_cycle(DECK, history, play_count=4)
     assert cycle["hand_exact"] is True
     assert set(cycle["hand_cards"]) == {"Cannon", "Fireball", "HogRider", "IceGolem"}
     assert cycle["queue_oldest_to_newest"] == [
-        "IceSpirit", "Musketeer", "Skeletons", "TheLog"
+        "TheLog", "Skeletons", "Musketeer", "IceSpirit"
     ]
-    assert cycle["plays_until_return"][0] == {
-        "card": "TheLog",
-        "plays_until_return": 4,
-    }
-    assert cycle["plays_until_return"][-1] == {
-        "card": "IceSpirit",
-        "plays_until_return": 1,
-    }
+    assert cycle["plays_until_return"] == [
+        {"card": "TheLog", "plays_until_return": 1},
+        {"card": "Skeletons", "plays_until_return": 2},
+        {"card": "Musketeer", "plays_until_return": 3},
+        {"card": "IceSpirit", "plays_until_return": 4},
+    ]
 
 
-def test_hidden_recent_plays_do_not_become_exact():
-    history = rows("TheLog", "Skeletons", "Musketeer", "IceSpirit")
-    history[1]["flags"] = 0
-    cycle = derive_opponent_cycle(DECK, history, play_count=8)
+def test_unshown_last_play_invalidates_exact_cycle_even_if_older_four_are_known():
+    history = rows("Fireball", "TheLog", "Skeletons", "Musketeer", "IceSpirit")
+    history[-1]["flags"] = 0
+    history[-1]["card"] = None
+    cycle = derive_opponent_cycle(DECK, history, play_count=5)
     assert cycle["hand_exact"] is False
-    assert cycle["uncertainty"] is not None
+    assert cycle["queue_oldest_to_newest"] is None
+
+
+def test_trailing_unused_rows_are_not_counted_as_actual_plays():
+    history = rows("TheLog", "Skeletons", "Musketeer", "IceSpirit")
+    history += [{"card": None, "flags": 0}] * 4
+    cycle = derive_opponent_cycle(DECK, history, play_count=4)
+    assert cycle["hand_exact"] is True
+    assert cycle["queue_oldest_to_newest"][0] == "TheLog"
 
 
 def test_rejects_non_eight_card_deck():
