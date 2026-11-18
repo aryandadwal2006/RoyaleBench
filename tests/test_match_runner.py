@@ -11,7 +11,13 @@ from royalebench.runner import MatchRunner
 
 class FakeEngine:
     def __init__(self):
-        self.config = SimpleNamespace(deck=("Cannon",) * 8, card_level=11, tower_level=11, max_ticks=9000, mask_version=1)
+        self.config = SimpleNamespace(
+            deck=("Cannon",) * 8,
+            card_level=11,
+            tower_level=11,
+            max_ticks=9000,
+            mask_version=1,
+        )
         self.metadata = {"data_version": "fake"}
         self.tick = 0
         self.closed = False
