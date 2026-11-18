@@ -191,3 +191,46 @@ def test_forecast_evaluator_rejects_broken_observation_chain(tmp_path):
 
     with pytest.raises(ValueError, match="broken observation chain"):
         evaluate_forecaster(split, PersistenceForecaster(), horizons=(1,))
+
+
+
+def test_entity_metrics_use_stable_ids_and_score_position_and_visible_hp(tmp_path):
+    split = tmp_path / "test.jsonl.gz"
+    _write_split(split, length=1)
+    records = _read_records(split)
+    source_entity = {
+        "id": 12,
+        "row_name": "HogRider",
+        "kind_name": "character",
+        "x_tiles": 1.0,
+        "y_tiles": 2.0,
+        "hp": 500,
+    }
+    target_entity = {
+        **source_entity,
+        "x_tiles": 3.0,
+        "hp": 450,
+    }
+    newly_seen = {
+        "id": 18,
+        "row_name": "Musketeer",
+        "kind_name": "character",
+        "x_tiles": 5.0,
+        "y_tiles": 6.0,
+        "hp": 600,
+    }
+    records[0]["observation"]["entities"] = [source_entity]
+    records[0]["next_observation"]["entities"] = [target_entity, newly_seen]
+    records[0]["observation_hash"] = observation_hash(records[0]["observation"])
+    records[0]["next_observation_hash"] = observation_hash(records[0]["next_observation"])
+    _write_records(split, records)
+
+    report = evaluate_forecaster(split, PersistenceForecaster(), horizons=(1,))
+    metrics = report["horizons"]["1"]
+    assert metrics["entity_identity_precision"] == 1.0
+    assert metrics["entity_identity_recall"] == 0.5
+    assert metrics["entity_identity_f1"] == pytest.approx(2.0 / 3.0)
+    assert metrics["entity_position_mae_tiles"] == 2.0
+    assert metrics["entity_position_values"] == 1
+    assert metrics["entity_hp_mae"] == 50.0
+    assert metrics["entity_hp_values"] == 1
