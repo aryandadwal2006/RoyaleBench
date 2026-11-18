@@ -51,14 +51,45 @@ def _engine_factory(config: Any):
     return create
 
 
-def _agent_factories(names: list[str]) -> dict[str, Any]:
+def _agent_factories(
+    names: list[str],
+    *,
+    external_agent_name: str | None = None,
+    external_agent_command: list[str] | None = None,
+    external_agent_cwd: str | None = None,
+    external_agent_env: dict[str, str] | None = None,
+) -> dict[str, Any]:
     factories: dict[str, Any] = {
         "noop-v1": NoOpAgent,
         "random-legal-v1": RandomLegalAgent,
         "hog-cycle-rules-v1": HogCycleAgent,
     }
+    if (external_agent_name is None) != (external_agent_command is None):
+        raise ValueError(
+            "--external-agent-name and --external-agent-command must be supplied together"
+        )
+    if external_agent_name is not None:
+        if not external_agent_name.strip():
+            raise ValueError("external agent name must be non-empty")
+        if external_agent_name in factories or external_agent_name in {"llm"}:
+            raise ValueError(f"external agent name {external_agent_name!r} is reserved")
+        if external_agent_name not in names:
+            raise ValueError(
+                f"--external-agent-name {external_agent_name!r} must also appear in --agents"
+            )
+        from royalebench.agents.subprocess_agent import SubprocessAgent
+
+        factories[external_agent_name] = lambda name=external_agent_name: SubprocessAgent(
+            name,
+            external_agent_command or [],
+            cwd=external_agent_cwd,
+            env=external_agent_env,
+        )
+
     selected: dict[str, Any] = {}
     for name in names:
+        if not name or name != name.strip():
+            raise ValueError("agent names in --agents must be non-empty and have no surrounding spaces")
         if name == "llm":
             from royalebench.agents.openai_compatible import OpenAICompatibleAgent
 
@@ -67,9 +98,12 @@ def _agent_factories(names: list[str]) -> dict[str, Any]:
             agent.close()
             continue
         if name not in factories:
+            available = sorted(factories)
             raise ValueError(
-                f"unknown agent {name!r}; available: {', '.join(sorted(factories))}, llm"
+                f"unknown agent {name!r}; available: {', '.join(available)}, llm"
             )
+        if name in selected:
+            raise ValueError(f"agent {name!r} was requested more than once")
         selected[name] = factories[name]
     if len(selected) < 2:
         raise ValueError("choose at least two distinct agents")
@@ -119,7 +153,19 @@ def _cmd_smoke(args: argparse.Namespace) -> int:
 def _cmd_tournament(args: argparse.Namespace) -> int:
     config = _load(args)
     ticks = config.ticks_for_profile(args.profile)
-    factories = _agent_factories(args.agents.split(","))
+    names = [name.strip() for name in args.agents.split(",")]
+    external_env: dict[str, str] = {}
+    for key in args.external_agent_pass_env:
+        if not key or key not in os.environ:
+            raise ValueError(f"requested external-agent environment variable {key!r} is not set")
+        external_env[key] = os.environ[key]
+    factories = _agent_factories(
+        names,
+        external_agent_name=args.external_agent_name,
+        external_agent_command=args.external_agent_command,
+        external_agent_cwd=args.external_agent_cwd,
+        external_agent_env=external_env,
+    )
     seeds = [int(value.strip()) for value in args.seeds.split(",") if value.strip()]
     tournament = TournamentRunner(
         _engine_factory(config),
@@ -173,6 +219,27 @@ def build_parser() -> argparse.ArgumentParser:
     tournament.add_argument("--seeds", default="11,22,33")
     tournament.add_argument("--timeout", type=float, default=120.0)
     tournament.add_argument("--output", default="results/tournament")
+    tournament.add_argument(
+        "--external-agent-name",
+        default=None,
+        help="name used for one external JSONL subprocess participant (must appear in --agents)",
+    )
+    tournament.add_argument(
+        "--external-agent-command",
+        type=json.loads,
+        default=None,
+        help='JSON string array command, for example \'["python","agent.py"]\'',
+    )
+    tournament.add_argument(
+        "--external-agent-cwd",
+        default=None,
+        help="working directory for the external participant",
+    )
+    tournament.add_argument(
+        "--external-agent-pass-env",
+        default="",
+        help="comma-separated parent environment-variable names to pass explicitly to the worker",
+    )
     tournament.set_defaults(handler=_cmd_tournament)
 
     dataset = sub.add_parser(
