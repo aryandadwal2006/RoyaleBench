@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from royalebench.agents.baselines import HogCycleAgent, NoOpAgent, RandomLegalAgent
-from royalebench.config import load_config
+from royalebench.config import V1_CONTENT_SHA, load_config
 from royalebench.dataset import build_dataset
 from royalebench.engine.crforge import CrforgeBattle
 from royalebench.forecasting import PersistenceForecaster, evaluate_forecaster, write_forecast_report
@@ -129,8 +129,10 @@ def _cmd_config_check(args: argparse.Namespace) -> int:
     config = _load(args)
     print(json.dumps({
         "valid": True,
+        "upstream_commit": config.upstream_commit,
         "deck": list(config.deck),
         "data_version": config.data_version,
+        "data_content_sha": V1_CONTENT_SHA,
         "card_level": config.card_level,
         "tower_level": config.tower_level,
         "profiles": dict(config.decision_profiles),
