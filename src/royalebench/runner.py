@@ -168,6 +168,17 @@ class MatchRunner:
                 "profile": self.profile,
                 "decision_ticks": self.profile_ticks,
                 "deck": list(self.engine.config.deck),
+                "card_level": self.engine.config.card_level,
+                "tower_level": self.engine.config.tower_level,
+                "max_ticks": self.engine.config.max_ticks,
+                "mask_version": self.engine.config.mask_version,
+                "action_resolution": ActionResolution.tile_center().resolution_id,
+                "observation_schema": OBSERVATION_SCHEMA,
+                "response_schema": RESPONSE_SCHEMA,
+                "public_memory_version": "opponent-cycle-v1",
+                "upstream": {
+                    "crforge_commit": "fa5959055c590a493d62c8dbc804e602832d08a6"
+                },
                 "engine": self.engine.metadata,
             }
             for seat, agent in enumerate(agents):
@@ -175,7 +186,12 @@ class MatchRunner:
                 configured_timeout = getattr(agent, "timeout_s", self.request_timeout_s)
                 if callable(set_timeout):
                     set_timeout(min(float(configured_timeout), self.request_timeout_s))
-                agent.reset({**reset_info, "seat": seat})
+                try:
+                    agent.reset(copy.deepcopy({**reset_info, "seat": seat}))
+                except Exception as exc:
+                    raise AgentExecutionError(
+                        f"agent {agent.name} failed to initialize at seat {seat}: {exc}"
+                    ) from exc
 
             observations = self.engine.reset(seed, match_id=match_id)
             status = "completed"
@@ -201,6 +217,11 @@ class MatchRunner:
                         labels = ", ".join(
                             f"{agents[seat].name}@seat{seat}" for seat in timed_out_seats
                         )
+                        for seat in timed_out_seats:
+                            abort_pending = getattr(agents[seat], "abort_pending", None)
+                            if callable(abort_pending):
+                                with contextlib.suppress(Exception):
+                                    abort_pending()
                         raise AgentExecutionError(
                             f"request watchdog expired after {self.request_timeout_s:.3f}s "
                             f"at decision {decision_id}: {labels}"
