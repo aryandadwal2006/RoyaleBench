@@ -166,6 +166,68 @@ def _verify_dataset_shard(path: Path) -> dict[str, Any]:
     }
 
 
+def _validate_transition_sequence(
+    records: list[dict[str, Any]],
+    *,
+    match_id: str,
+    seat: int,
+) -> None:
+    """Require a complete, ordered one-step transition chain for each match seat."""
+    if not records:
+        return
+    for index, record in enumerate(records):
+        decision_id = int(record["decision_id"])
+        if decision_id != index:
+            raise ValueError(
+                f"non-contiguous decision sequence for {match_id} seat {seat}: "
+                f"expected decision {index}, got {decision_id}"
+            )
+        observation = record["observation"]
+        next_observation = record["next_observation"]
+        if (
+            observation.get("match_id") != match_id
+            or next_observation.get("match_id") != match_id
+            or observation.get("seat") != seat
+            or next_observation.get("seat") != seat
+        ):
+            raise ValueError(
+                f"transition observation identity mismatch for {match_id} seat {seat} "
+                f"decision {decision_id}"
+            )
+        if observation.get("decision_id") != decision_id:
+            raise ValueError(
+                f"source observation decision ID mismatch for {match_id} seat {seat} "
+                f"decision {decision_id}"
+            )
+        if next_observation.get("decision_id") != decision_id + 1:
+            raise ValueError(
+                f"next-observation decision ID mismatch for {match_id} seat {seat} "
+                f"decision {decision_id}"
+            )
+        try:
+            start_tick = int(observation["game"]["tick"])
+            next_tick = int(next_observation["game"]["tick"])
+            recorded_tick = int(record["engine_tick"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ValueError(
+                f"invalid engine tick metadata for {match_id} seat {seat} "
+                f"decision {decision_id}"
+            ) from exc
+        if next_tick <= start_tick or recorded_tick != next_tick:
+            raise ValueError(
+                f"invalid transition tick interval for {match_id} seat {seat} "
+                f"decision {decision_id}: {start_tick} -> {next_tick}, "
+                f"recorded engine tick {recorded_tick}"
+            )
+        if index:
+            previous = records[index - 1]
+            if previous["next_observation_hash"] != record["observation_hash"]:
+                raise ValueError(
+                    f"broken observation chain for {match_id} seat {seat} "
+                    f"between decisions {index - 1} and {decision_id}"
+                )
+
+
 def evaluate_forecaster(
     split_path: str | Path,
     forecaster: Forecaster,
@@ -204,8 +266,9 @@ def evaluate_forecaster(
         horizon: defaultdict(float) for horizon in horizons
     }
     counts = {horizon: 0 for horizon in horizons}
-    for records in grouped.values():
+    for (match_id, seat), records in grouped.items():
         records.sort(key=lambda item: int(item["decision_id"]))
+        _validate_transition_sequence(records, match_id=match_id, seat=seat)
         for horizon in horizons:
             for start in range(0, len(records) - horizon + 1):
                 source = records[start]
@@ -213,8 +276,8 @@ def evaluate_forecaster(
                 observation = source["observation"]
                 actual = target["next_observation"]
                 actions = [row["action"] for row in records[start : start + horizon]]
-                start_tick = int(source["engine_tick"])
-                end_tick = int(target["next_observation"]["game"]["tick"])
+                start_tick = int(observation["game"]["tick"])
+                end_tick = int(actual["game"]["tick"])
                 horizon_ticks = end_tick - start_tick
                 if horizon_ticks < 1:
                     raise ValueError("forecast target tick must follow source engine tick")
