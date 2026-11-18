@@ -2,7 +2,7 @@
 
 **Status:** Core benchmark implementation is in place. The upstream CRForge Gradle test task has passed on the user's Windows machine; final headless adapter acceptance and research evaluation remain outstanding.
 
-This roadmap distinguishes code that exists from evidence that it has been validated against the pinned native engine. A checked implementation item does not imply that the user's Windows installation or the upstream CRForge test suite has passed.
+This roadmap distinguishes implementation status from validation evidence against the pinned native engine. A checked implementation item records that the code exists; only the explicitly recorded acceptance results below count as native-runtime evidence.
 
 ## Frozen v1 scope
 
