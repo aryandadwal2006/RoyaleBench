@@ -13,6 +13,7 @@ from royalebench.agents.baselines import HogCycleAgent, NoOpAgent, RandomLegalAg
 from royalebench.config import load_config
 from royalebench.dataset import build_dataset
 from royalebench.engine.crforge import CrforgeBattle
+from royalebench.forecasting import PersistenceForecaster, evaluate_forecaster, write_forecast_report
 from royalebench.runner import MatchRunner
 from royalebench.tournament import TournamentRunner
 
@@ -206,6 +207,20 @@ def _cmd_dataset(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_forecast_eval(args: argparse.Namespace) -> int:
+    horizons = tuple(
+        int(value.strip()) for value in args.horizons.split(",") if value.strip()
+    )
+    report = evaluate_forecaster(
+        args.split,
+        PersistenceForecaster(),
+        horizons=horizons,
+    )
+    write_forecast_report(report, args.output)
+    print(json.dumps(report, indent=2))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="royalebench")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -269,6 +284,15 @@ def build_parser() -> argparse.ArgumentParser:
     dataset.add_argument("--validation-fraction", type=float, default=0.1)
     dataset.add_argument("--test-fraction", type=float, default=0.1)
     dataset.set_defaults(handler=_cmd_dataset)
+
+    forecast = sub.add_parser(
+        "forecast-eval",
+        help="evaluate the persistence forecasting baseline on a held-out shard",
+    )
+    forecast.add_argument("--split", required=True, help="path to test.jsonl.gz or another split")
+    forecast.add_argument("--output", default="results/forecast-evaluation.json")
+    forecast.add_argument("--horizons", default="1,2,4", help="decision intervals")
+    forecast.set_defaults(handler=_cmd_forecast_eval)
     return parser
 
 
