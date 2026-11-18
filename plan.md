@@ -798,6 +798,10 @@ By **18 January 2027**, the complete paper should be internally frozen for criti
 
 ---
 
+## 15.1 Separate follow-on agent paper
+
+The long-term agent-building programme is deliberately separate from this benchmark/evaluation paper. Its detailed research and engineering plan is in [agent_research_plan.md](agent_research_plan.md). The benchmark paper should produce the trusted measurement infrastructure; the follow-on paper should use expert imitation, league self-play, opponent modelling and model-based search to develop a genuinely strong player. Do not claim elite-human performance until a controlled, repeated challenge establishes it.
+
 ## 16. Immediate next actions
 
 1. Pull the latest main and rerun the bootstrap/acceptance after the submodule check fix. The new pin verifier reads the commit IDs from the actual superproject gitlinks. It has not yet been verified on the user's Windows machine.
