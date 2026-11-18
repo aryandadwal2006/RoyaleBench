@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 import random
 import re
 import statistics
 from collections import defaultdict
+from datetime import UTC, datetime
 from collections.abc import Callable
 from contextlib import suppress
 from pathlib import Path
@@ -89,10 +91,21 @@ class TournamentRunner:
             raise ValueError("agent names collide after conversion to filesystem-safe match IDs")
 
         root = Path(output_dir)
+        root.mkdir(parents=True, exist_ok=True)
         matches_dir = root / "matches"
+        protected_outputs = [
+            root / "matches.json",
+            root / "tournament.json",
+            root / "leaderboard.csv",
+            root / "tournament_manifest.json",
+        ]
+        existing_outputs = [path for path in protected_outputs if path.exists()]
         if matches_dir.exists() and any(matches_dir.iterdir()):
+            existing_outputs.append(matches_dir)
+        if existing_outputs:
+            names = ", ".join(str(path) for path in existing_outputs)
             raise FileExistsError(
-                f"{matches_dir} already contains matches; choose a new tournament output directory"
+                f"tournament output already exists ({names}); choose a new tournament output directory"
             )
         matches_dir.mkdir(parents=True, exist_ok=True)
 
@@ -224,7 +237,8 @@ class TournamentRunner:
             json.dumps(summary, indent=2, sort_keys=True) + "\n",
             encoding="utf-8",
         )
-        with (root / "leaderboard.csv").open("w", newline="", encoding="utf-8") as handle:
+        leaderboard_path = root / "leaderboard.csv"
+        with leaderboard_path.open("w", newline="", encoding="utf-8") as handle:
             writer = csv.DictWriter(
                 handle,
                 fieldnames=[
@@ -247,4 +261,60 @@ class TournamentRunner:
                 csv_row = dict(row)
                 csv_row["score_ci95"] = json.dumps(row["score_ci95"])
                 writer.writerow(csv_row)
+
+        match_manifest_entries = []
+        engine_fingerprints: dict[str, dict[str, Any]] = {}
+        for row in results:
+            match_id = str(row["match_id"])
+            match_directory = Path(row["output_dir"])
+            manifest_path = match_directory / "manifest.json"
+            manifest_payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+            engine = manifest_payload.get("engine", {})
+            fingerprint = json.dumps(engine, sort_keys=True, separators=(",", ":"))
+            engine_fingerprints[fingerprint] = engine
+            digest = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
+            match_manifest_entries.append(
+                {
+                    "match_id": match_id,
+                    "path": str(manifest_path.relative_to(root)),
+                    "sha256": digest,
+                }
+            )
+
+        matches_path = root / "matches.json"
+        tournament_path = root / "tournament.json"
+        artifact_paths = [matches_path, tournament_path, leaderboard_path]
+        tournament_manifest = {
+            "schema": "royalebench.tournament-manifest.v1",
+            "created_at_utc": datetime.now(UTC).isoformat(),
+            "schedule": "round-robin-paired-seat-swap-v1",
+            "rating": {
+                "system": "Glicko-2",
+                "period": "one complete tournament; frozen pre-period opponent ratings",
+                "initial_rating": starting_rating.rating,
+                "initial_deviation": starting_rating.deviation,
+                "initial_volatility": starting_rating.volatility,
+                "tau": 0.5,
+            },
+            "profile": self.profile,
+            "decision_ticks": self.profile_ticks,
+            "seeds": [int(seed) for seed in seeds],
+            "agents": players,
+            "total_matches": len(results),
+            "completed_matches": len(completed),
+            "void_or_failed_matches": len(results) - len(completed),
+            "upstream": {
+                "crforge_commit": "fa5959055c590a493d62c8dbc804e602832d08a6"
+            },
+            "engine_fingerprints": list(engine_fingerprints.values()),
+            "match_manifests": match_manifest_entries,
+            "artifacts": {
+                path.name: hashlib.sha256(path.read_bytes()).hexdigest()
+                for path in artifact_paths
+            },
+        }
+        (root / "tournament_manifest.json").write_text(
+            json.dumps(tournament_manifest, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
         return summary
