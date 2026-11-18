@@ -94,16 +94,16 @@ def _agent_manifest_entry(agent: Agent, seat: int) -> dict[str, Any]:
         entry["implementation_sha256"] = hashlib.sha256(source).hexdigest()
 
     if hasattr(agent, "model"):
-        entry["model"] = str(getattr(agent, "model"))
+        entry["model"] = str(agent.model)
         entry["provider"] = "openai-compatible"
         entry["base_url"] = str(getattr(agent, "base_url", ""))
         entry["temperature"] = float(getattr(agent, "temperature", 0.0))
         entry["max_tokens"] = int(getattr(agent, "max_tokens", 0))
 
     if hasattr(agent, "wait_probability"):
-        entry["wait_probability"] = float(getattr(agent, "wait_probability"))
+        entry["wait_probability"] = float(agent.wait_probability)
     if hasattr(agent, "seed_offset"):
-        entry["seed_offset"] = int(getattr(agent, "seed_offset"))
+        entry["seed_offset"] = int(agent.seed_offset)
 
     command = getattr(agent, "command", None)
     if isinstance(command, (list, tuple)) and command:
