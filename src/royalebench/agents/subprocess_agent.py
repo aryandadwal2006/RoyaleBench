@@ -2,14 +2,16 @@
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import queue
 import signal
 import subprocess
 import threading
+from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any
 
 from royalebench.observations import observation_hash
 from royalebench.protocol.actions import ActionResolution
@@ -115,7 +117,9 @@ class SubprocessAgent:
             item = messages.get(timeout=timeout_s)
         except queue.Empty as exc:
             self._terminate()
-            raise TimeoutError(f"agent {self.name!r} exceeded {timeout_s:.3f}s response timeout") from exc
+            raise TimeoutError(
+                f"agent {self.name!r} exceeded {timeout_s:.3f}s response timeout"
+            ) from exc
         if isinstance(item, BaseException):
             raise RuntimeError(f"failed reading agent {self.name!r} stdout: {item}") from item
         if item is None:
@@ -173,7 +177,9 @@ class SubprocessAgent:
             )
             ready = self._receive(self.startup_timeout_s)
             if ready.get("schema") != _AGENT_EVENT_SCHEMA or ready.get("type") != "ready":
-                raise ValueError("agent must acknowledge start with an agent-event.v1 ready message")
+                raise ValueError(
+                    "agent must acknowledge start with an agent-event.v1 ready message"
+                )
         except Exception:
             self._terminate()
             raise
@@ -258,10 +264,8 @@ class SubprocessAgent:
                     os.killpg(process.pid, signal.SIGTERM)
                     process.wait(timeout=self.shutdown_timeout_s)
                 except subprocess.TimeoutExpired:
-                    try:
+                    with contextlib.suppress(ProcessLookupError):
                         os.killpg(process.pid, signal.SIGKILL)
-                    except ProcessLookupError:
-                        pass
                 except ProcessLookupError:
                     pass
             else:
@@ -275,20 +279,16 @@ class SubprocessAgent:
                     process.wait()
         for stream in (process.stdin, process.stdout):
             if stream is not None:
-                try:
+                with contextlib.suppress(OSError):
                     stream.close()
-                except OSError:
-                    pass
 
     def close(self) -> None:
         process = self._process
         if process is None:
             return
         if process.poll() is None:
-            try:
+            with contextlib.suppress(Exception):
                 self._send({"schema": _AGENT_EVENT_SCHEMA, "type": "close"})
-            except Exception:
-                pass
             try:
                 process.wait(timeout=self.shutdown_timeout_s)
             except subprocess.TimeoutExpired:
