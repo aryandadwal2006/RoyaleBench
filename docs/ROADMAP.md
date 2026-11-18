@@ -46,11 +46,11 @@ The half-tile code validates a proposed protocol resolution only. It does not ye
 - [ ] Implement a Python engine adapter around the crforge environment.
 - [ ] Define JSON Schemas for ObservationV1, ActionV1, AgentMetadataV1 and MatchManifestV1.
 - [ ] Implement typed Python dataclasses and validators from those schemas.
-- [ ] Implement one fixed mirrored deck, equal levels and deterministic seed derivation.
-- [ ] Implement a two-seat lockstep scheduler.
+- [x] Freeze one fixed mirrored Hog 2.6 deck, equal levels and deterministic seed derivation.
+- [x] Implement a two-seat lockstep scheduler for in-process agents.
 - [ ] Implement action parsing, native command execution and requested/actual placement logging.
 - [ ] Implement match termination, draw, engine-fault and unsupported-action handling.
-- [ ] Save replays and per-decision logs.
+- [x] Save match manifests, compressed observation/action transitions, and result summaries.
 - [ ] Add a no-op agent and random-legal agent as protocol tests.
 
 **Exit gate:** two independently running baseline agents complete paired games; identical configurations reproduce the same engine/action/result logs.
@@ -92,7 +92,7 @@ The half-tile code validates a proposed protocol resolution only. It does not ye
 - [ ] Implement concurrent requests for both seats.
 - [ ] Implement structured-output validation and malformed-response handling.
 - [ ] Implement agent reset/close lifecycle and per-match memory isolation.
-- [ ] Implement a reference scripted agent and one baseline recurrent/RL agent.
+- [x] Implement no-op, random-legal and deterministic Hog-cycle rule baselines.
 - [ ] Publish a small external-lab example agent that can play a local match without modifying RoyaleBench.
 
 **Exit gate:** an outside lab can clone RoyaleBench, implement the SDK, and enter a match without changing the engine or tournament code.
@@ -120,10 +120,10 @@ The half-tile code validates a proposed protocol resolution only. It does not ye
 
 ## Phase 7 — Tournament and scoring
 
-- [ ] Implement fixed match schedules and hidden evaluation seeds.
+- [x] Implement paired round-robin schedules with seat swaps and deterministic seeds.
 - [ ] Implement paired side swaps.
 - [ ] Implement baseline opponent pool: no-op, random legal, simple defensive, simple aggressive and frozen learned policy.
-- [ ] Implement Glicko-2 with the initial parameters and rating-period policy in ADR-0009.
+- [x] Implement Glicko-2 with frozen pre-period ratings, 1500/350/0.06 defaults and tau=0.5.
 - [ ] Report W/D/L, uncertainty, crown differential, opponent-specific results and invalid/timeouts.
 - [ ] Keep separate modality, latency and action-resolution leaderboards.
 - [ ] Add run manifests, replay hashes and signed result bundles.
@@ -157,7 +157,7 @@ The half-tile code validates a proposed protocol resolution only. It does not ye
 ## Phase 10 — Release and research paper
 
 - [ ] Publish complete benchmark specification and benchmark card.
-- [ ] Publish installation and game-data provenance instructions.
+- [x] Add Windows bootstrap/build scripts and document local game-data provenance.
 - [ ] Publish code, schemas, baselines and reproducible manifests within licence constraints.
 - [ ] Publish fidelity report, unsupported mechanic list and known limitations.
 - [ ] Run multiple seeds and sufficient matches for confidence intervals/rating uncertainty.

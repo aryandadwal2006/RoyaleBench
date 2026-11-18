@@ -6,6 +6,8 @@ from typing import Any
 
 import numpy as np
 
+from royalebench.public_memory import derive_opponent_cycle
+
 
 OBSERVATION_SCHEMA = "royalebench.observation.v1"
 
@@ -161,6 +163,12 @@ def build_observation(
             }
         )
 
+    opponent_cycle = derive_opponent_cycle(
+        deck,
+        recent_plays,
+        play_count=scalar("enemy_play_count"),
+    )
+
     rows = schema.entities(raw_observation)
     entities = [_entity_payload(schema, vocabulary, row) for row in rows]
 
@@ -217,6 +225,7 @@ def build_observation(
             "cards_seen": enemy_seen,
             "play_count": scalar("enemy_play_count"),
             "recent_plays": recent_plays,
+            "card_cycle": opponent_cycle,
             "towers": {name: towers[name] for name in tower_names[3:]},
         },
         "entities": entities,
