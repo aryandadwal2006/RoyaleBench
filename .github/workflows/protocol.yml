@@ -23,5 +23,7 @@ jobs:
         run: python -m pip install -e ".[dev]"
       - name: Run tests
         run: python -m pytest
+      - name: Lint fix preview
+        run: python -m ruff check --diff src tests || true
       - name: Lint
         run: python -m ruff check src tests
