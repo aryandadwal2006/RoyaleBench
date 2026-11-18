@@ -12,6 +12,15 @@ if (-not (Test-Path (Join-Path $Upstream "gradlew.bat"))) {
     throw "CRForge submodule is missing. Run .\scripts\bootstrap_upstreams.ps1 first."
 }
 
+$ExpectedCommit = "fa5959055c590a493d62c8dbc804e602832d08a6"
+$ActualCommit = & git -C $Upstream rev-parse HEAD
+if ($LASTEXITCODE -ne 0) {
+    throw "Could not read the CRForge submodule commit."
+}
+if ($ActualCommit.Trim() -ne $ExpectedCommit) {
+    throw "CRForge commit mismatch. Expected $ExpectedCommit, found $($ActualCommit.Trim())."
+}
+
 Push-Location $Upstream
 try {
     & .\gradlew.bat :env:installDist :tables:dataVersionTables "-Pcrforge.assetSource=$AssetSource"
