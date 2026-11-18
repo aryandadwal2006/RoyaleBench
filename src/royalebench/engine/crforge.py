@@ -142,6 +142,27 @@ def _validate_runtime_metadata(
         )
 
 
+def _validate_game_data_identity(
+    actual_version: str | None,
+    actual_content_sha: str | None,
+    *,
+    expected_version: str,
+) -> None:
+    """Require the exact upstream table version and content fingerprint for v1."""
+    if expected_version != "16.635.8":
+        raise CrforgeEngineError(
+            f"v1 cannot target game-data version {expected_version}; it fixes 16.635.8"
+        )
+    if actual_version != expected_version:
+        raise CrforgeEngineError(
+            f"game-data version mismatch: expected {expected_version}, got {actual_version}"
+        )
+    if actual_content_sha != V1_CONTENT_SHA:
+        raise CrforgeEngineError(
+            f"game-data content SHA mismatch: expected {V1_CONTENT_SHA}, got {actual_content_sha}"
+        )
+
+
 def _validate_initial_observations(
     observations: tuple[dict[str, Any], dict[str, Any]],
     *,
@@ -277,19 +298,15 @@ class CrforgeBattle:
             raise CrforgeEngineError(f"could not validate CRForge runtime metadata: {exc}") from exc
 
         wanted_version = expected_data_version or config.data_version
-        if self.vector.data_version != wanted_version:
-            actual = self.vector.data_version
-            self.close()
-            raise CrforgeEngineError(
-                f"game-data version mismatch: expected {wanted_version}, got {actual}"
+        try:
+            _validate_game_data_identity(
+                self.vector.data_version,
+                self.vector.content_sha,
+                expected_version=wanted_version,
             )
-
-        if self.vector.content_sha != V1_CONTENT_SHA:
-            actual_sha = self.vector.content_sha
+        except CrforgeEngineError:
             self.close()
-            raise CrforgeEngineError(
-                f"game-data content SHA mismatch: expected {V1_CONTENT_SHA}, got {actual_sha}"
-            )
+            raise
 
         try:
             self.deck_rows = _resolve_deck_rows(config.deck, self.vector.vocabulary)
