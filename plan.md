@@ -387,6 +387,69 @@ The key analysis is not simply visual-versus-structured win rate. It is whether 
 Do not let the visual renderer delay the frozen v1 acceptance. It is a research-layer component and must be versioned independently.
 ---
 
+## 7.3 A real world-model evaluation track
+
+The current persistence forecaster is only a sanity baseline. For a benchmark intended to measure planning and strategic intelligence, add a genuine learned dynamics/prediction track rather than treating persistence as a world-model result.
+
+### Separate prediction tasks
+
+1. **Action-conditioned dynamics prediction:** predict future visible observations given a source observation and a declared action sequence. If both players' future actions are supplied, label this teacher-forced conditional dynamics prediction; it does not measure opponent modelling.
+2. **Opponent-action prediction:** predict the opponent's action distribution from the agent's observation and past public history only. Do not pass the actual future opponent action to the predictor.
+3. **Planning utility:** use a predicted model inside a fixed planner and measure the actual outcome/action quality of the resulting decisions under the exact simulator. Prediction accuracy and control utility are separate outcomes.
+
+### Baseline models
+
+- Persistence baseline (already implemented).
+- Constant-velocity / deterministic entity extrapolation baseline.
+- Entity-tracking plus event-rule baseline, where supported by visible state.
+- Compact recurrent predictor.
+- Entity-token Transformer or another learned action-conditioned model.
+- Optional model-based planner that uses predictions to rank candidate actions and then verifies top actions against CRForge.
+
+### Metrics
+
+- Entity existence, type and stable-identity precision/recall/F1.
+- Position and velocity error in tile units, with matched-entity reporting.
+- Visible unit HP and tower HP MAE.
+- Own and public-estimated opponent resource MAE and calibration.
+- Entity-count error and overflow/truncation rate.
+- Event classification and event-time error for public card plays, deaths, projectile launches/impacts and tower damage where the event contract supports unambiguous identity.
+- Multi-horizon error and uncertainty calibration; report error accumulation rather than only one-step accuracy.
+- Downstream candidate-set regret and actual match performance when the predictor is used for planning.
+
+Use match/seed-cluster-separated train, validation and hidden test sets. The predictor must not receive future observations, future outcomes or hidden simulator state. If a joint future action sequence is used for dynamics evaluation, identify it as teacher forcing and keep it separate from the opponent-modelling task.
+
+### Scientific question
+
+Does lower multi-step prediction error improve strategic decisions, or can a model be more accurate on average while being worse on strategically decisive events? The planning-utility experiment is what makes this track scientifically meaningful. Do not claim that a forecaster is a stronger agent until it is integrated into a policy and evaluated in actual competition.
+
+---
+
+## 7.4 Parallel engine and external-policy tracks
+
+RoyaleGym/RoyaleSim, FirstLight, Hasty-CR and ClashAI should be investigated as independent sources of environment implementations, policies, checkpoints and training methodology. Their existence is useful for both related work and external baselines. Integration is conditional on source/checkpoint licensing and a defensible observation/action mapping.
+
+### Parallel engine evaluation
+
+- Keep CRForge as the canonical engine for the frozen v1 track.
+- Build a separate RoyaleSim/RoyaleGym adapter only after confirming version, rules, deck mechanics, action semantics, player-visible information and deterministic replay support.
+- Publish separate engine-specific matchups, ratings and manifests. Never combine raw ratings or win rates across CRForge and RoyaleSim when the game mechanics or data fingerprints differ.
+- Where a common policy can run on both engines through a tested adapter, report cross-engine transfer as an explicit generalization experiment, not as one merged leaderboard.
+- Treat engine disagreement as an empirical robustness result. Reconstruct comparable states only when the semantics are genuinely equivalent.
+
+### External policy integrations
+
+- Inspect FirstLight and Hasty-CR for public checkpoints, training data provenance, licences, game version, action interface and information access.
+- Inspect ClashAI for imitation/RL baselines and reusable training ideas; verify code and checkpoint licences before reuse.
+- A policy requiring privileged simulator state, a different card/version vocabulary or non-equivalent action semantics cannot be called a compatible CRForge baseline.
+- If a policy cannot be translated losslessly, run it only in its native, separately labelled engine track, or cite it as related work.
+- Record the exact code commit, checkpoint hash, preprocessing, observation mode and adapter version for every imported baseline.
+
+### What this adds
+
+The objective is not the largest number of engines or policies. It is to test whether conclusions survive a second implementation and whether existing public agents can be compared without silently changing their information or action interface. This is a stretch work package after the core CRForge evaluation is reliable.
+---
+
 ## 8. Competitive protocol and statistical analysis
 
 ### Match schedule
@@ -725,6 +788,8 @@ A submission missing deterministic simulator validation, genuine cross-matchup e
 - Three or more frozen LLM families with full cost/latency accounting.
 - Independent expert review of a tactical-state subset with inter-rater agreement.
 - Stability analysis of candidate-set regret under multiple continuation policies and opponents.
+- A real learned world-model track with event-aware, multi-horizon metrics and a downstream planning-utility experiment.
+- A separately reported RoyaleSim/RoyaleGym replication track or a compatible external-policy evaluation, with no cross-engine rating pooling.
 - A clear, statistically robust finding about ranking reversals, hidden specialization or the gap between match outcome and tactical decision quality.
 - A polished public benchmark package, reproducibility script and external users reproducing a subset before submission.
 
@@ -754,7 +819,7 @@ If the counterfactual evaluator cannot be validated, the paper must change its c
 Do not spend the remaining schedule on:
 - a visual-agent track or screenshot renderer;
 - a live Clash Royale client/account integration;
-- a full second-engine competition or pooling RoyaleSim and CRForge ratings;
+- pooling RoyaleSim and CRForge ratings. A second engine may be added as a separately reported replication/transfer track only after the primary CRForge evaluation is complete and semantic compatibility is demonstrated;
 - deck-building or automatic deck search;
 - large-scale self-play league infrastructure;
 - online public submissions or a secure multi-tenant sandbox;
