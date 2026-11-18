@@ -140,7 +140,7 @@ def _entity_identity_metrics(
         py = _number(predicted_entity.get("y_tiles"))
         ax = _number(actual_entity.get("x_tiles"))
         ay = _number(actual_entity.get("y_tiles"))
-        if None not in (px, py, ax, ay):
+        if px is not None and py is not None and ax is not None and ay is not None:
             position_errors.append(math.hypot(px - ax, py - ay))
         predicted_hp = _number(predicted_entity.get("hp"))
         actual_hp = _number(actual_entity.get("hp"))
