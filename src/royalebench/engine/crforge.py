@@ -97,7 +97,8 @@ def _validate_runtime_metadata(
         )
     if int(schema.play_delay_ticks) != 20:
         raise CrforgeEngineError(
-            f"CRForge native PlayerCommands delay is {schema.play_delay_ticks} ticks; v1 requires 20"
+            f"CRForge native PlayerCommands delay is {schema.play_delay_ticks} ticks; "
+            "v1 requires 20"
         )
 
 
@@ -124,12 +125,14 @@ def _validate_initial_observations(
             )
         if game.get("play_delay_ticks") != 20:
             raise CrforgeEngineError(
-                f"seat {seat} reports play_delay_ticks={game.get('play_delay_ticks')!r}, expected 20"
+                f"seat {seat} reports play_delay_ticks={game.get('play_delay_ticks')!r}, "
+                "expected 20"
             )
         own = observation.get("own", {})
         if own.get("deck") != list(deck_rows):
             raise CrforgeEngineError(
-                f"seat {seat} received a deck different from the frozen v1 deck: {own.get('deck')!r}"
+                f"seat {seat} received a deck different from the frozen v1 deck: "
+                f"{own.get('deck')!r}"
             )
         if own.get("deck_level") != [config.card_level] * 8:
             raise CrforgeEngineError(
@@ -148,7 +151,8 @@ def _validate_initial_observations(
         }
         if king_hp is None or king_hp != enemy_king_hp:
             raise CrforgeEngineError(
-                f"seat {seat} king tower levels are not mirrored: own={king_hp}, enemy={enemy_king_hp}"
+                f"seat {seat} king tower levels are not mirrored: "
+                f"own={king_hp}, enemy={enemy_king_hp}"
             )
         if None in princess_hp or len(princess_hp) != 1:
             raise CrforgeEngineError(
@@ -157,10 +161,13 @@ def _validate_initial_observations(
 
     if observations[0]["own"]["deck"] != observations[1]["own"]["deck"]:
         raise CrforgeEngineError("the two seats did not receive the same mirrored v1 deck")
-    if observations[0]["own"]["elixir_scaled"] != observations[0]["opponent"]["estimated_elixir_scaled"]:
-        raise CrforgeEngineError("seat 0 initial public opponent elixir differs from starting elixir")
-    if observations[1]["own"]["elixir_scaled"] != observations[1]["opponent"]["estimated_elixir_scaled"]:
-        raise CrforgeEngineError("seat 1 initial public opponent elixir differs from starting elixir")
+    for seat, observation in enumerate(observations):
+        own_elixir = observation["own"]["elixir_scaled"]
+        public_enemy_elixir = observation["opponent"]["estimated_elixir_scaled"]
+        if own_elixir != public_enemy_elixir:
+            raise CrforgeEngineError(
+                f"seat {seat} initial public opponent elixir differs from starting elixir"
+            )
 
 
 class CrforgeBattle:
