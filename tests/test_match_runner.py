@@ -105,6 +105,26 @@ class InvalidAgent(NoOpAgent):
         return {"schema": "royalebench.action.v1", "type": "unknown"}
 
 
+def test_runner_trajectory_compression_is_reproducible(tmp_path):
+    first = tmp_path / "first"
+    second = tmp_path / "second"
+    MatchRunner(FakeEngine(), profile="test", profile_ticks=5).run(
+        (NoOpAgent(), NoOpAgent()),
+        seed=12,
+        match_id="deterministic-match",
+        output_dir=first,
+    )
+    MatchRunner(FakeEngine(), profile="test", profile_ticks=5).run(
+        (NoOpAgent(), NoOpAgent()),
+        seed=12,
+        match_id="deterministic-match",
+        output_dir=second,
+    )
+    assert (first / "trajectory.jsonl.gz").read_bytes() == (
+        second / "trajectory.jsonl.gz"
+    ).read_bytes()
+
+
 def test_runner_gives_agents_isolated_observation_copies(tmp_path):
     engine = FakeEngine()
     runner = MatchRunner(engine, profile="test", profile_ticks=5)
