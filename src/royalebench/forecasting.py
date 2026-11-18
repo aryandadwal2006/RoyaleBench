@@ -89,6 +89,83 @@ def _entity_type_counts(observation: dict[str, Any]) -> dict[str, int]:
     return counts
 
 
+def _entities_by_id(observation: dict[str, Any]) -> dict[int, dict[str, Any]]:
+    """Index entities by CRForge's stable, seat-local first-sight ID."""
+    entities = observation.get("entities")
+    if not isinstance(entities, list):
+        return {}
+    indexed: dict[int, dict[str, Any]] = {}
+    for entity in entities:
+        if not isinstance(entity, dict):
+            continue
+        identity = entity.get("id")
+        if isinstance(identity, bool) or not isinstance(identity, int) or identity < 0:
+            continue
+        indexed[identity] = entity
+    return indexed
+
+
+def _entity_identity_metrics(
+    predicted: dict[str, Any],
+    actual: dict[str, Any],
+) -> dict[str, float]:
+    predicted_by_id = _entities_by_id(predicted)
+    actual_by_id = _entities_by_id(actual)
+    predicted_ids = set(predicted_by_id)
+    actual_ids = set(actual_by_id)
+    matched_ids = predicted_ids & actual_ids
+    true_positive = len(matched_ids)
+    precision = (
+        true_positive / len(predicted_ids)
+        if predicted_ids
+        else float(not actual_ids)
+    )
+    recall = (
+        true_positive / len(actual_ids)
+        if actual_ids
+        else float(not predicted_ids)
+    )
+    f1 = (
+        2.0 * precision * recall / (precision + recall)
+        if precision + recall
+        else 0.0
+    )
+
+    position_errors: list[float] = []
+    hp_errors: list[float] = []
+    for identity in matched_ids:
+        predicted_entity = predicted_by_id[identity]
+        actual_entity = actual_by_id[identity]
+        px = _number(predicted_entity.get("x_tiles"))
+        py = _number(predicted_entity.get("y_tiles"))
+        ax = _number(actual_entity.get("x_tiles"))
+        ay = _number(actual_entity.get("y_tiles"))
+        if None not in (px, py, ax, ay):
+            position_errors.append(math.hypot(px - ax, py - ay))
+        predicted_hp = _number(predicted_entity.get("hp"))
+        actual_hp = _number(actual_entity.get("hp"))
+        # CRForge uses -1 for health that the seat cannot currently see.
+        if (
+            predicted_hp is not None
+            and actual_hp is not None
+            and predicted_hp >= 0
+            and actual_hp >= 0
+        ):
+            hp_errors.append(abs(predicted_hp - actual_hp))
+
+    return {
+        "entity_identity_precision": precision,
+        "entity_identity_recall": recall,
+        "entity_identity_f1": f1,
+        "entity_position_mae_tiles": (
+            sum(position_errors) / len(position_errors) if position_errors else 0.0
+        ),
+        "entity_position_values": float(len(position_errors)),
+        "entity_hp_mae": sum(hp_errors) / len(hp_errors) if hp_errors else 0.0,
+        "entity_hp_values": float(len(hp_errors)),
+    }
+
+
 def _score_pair(
     predicted: dict[str, Any], actual: dict[str, Any]
 ) -> dict[str, float]:
@@ -118,6 +195,7 @@ def _score_pair(
         if precision + recall
         else 0.0
     )
+    identity_metrics = _entity_identity_metrics(predicted, actual)
     return {
         "tower_hp_mae": sum(tower_errors) / len(tower_errors) if tower_errors else 0.0,
         "tower_hp_values": float(len(tower_errors)),
@@ -129,6 +207,7 @@ def _score_pair(
         "predicted_entity_count": float(predicted_count),
         "actual_entity_count": float(actual_count),
         "entity_count_absolute_error": float(abs(predicted_count - actual_count)),
+        **identity_metrics,
     }
 
 
@@ -297,10 +376,21 @@ def evaluate_forecaster(
                     metrics["elixir_mae"] * metrics["elixir_values"]
                 )
                 totals[horizon]["elixir_values"] += metrics["elixir_values"]
+                totals[horizon]["entity_position_absolute_error"] += (
+                    metrics["entity_position_mae_tiles"] * metrics["entity_position_values"]
+                )
+                totals[horizon]["entity_position_values"] += metrics["entity_position_values"]
+                totals[horizon]["entity_hp_absolute_error"] += (
+                    metrics["entity_hp_mae"] * metrics["entity_hp_values"]
+                )
+                totals[horizon]["entity_hp_values"] += metrics["entity_hp_values"]
                 for key in (
                     "entity_type_precision",
                     "entity_type_recall",
                     "entity_type_f1",
+                    "entity_identity_precision",
+                    "entity_identity_recall",
+                    "entity_identity_f1",
                     "predicted_entity_count",
                     "actual_entity_count",
                     "entity_count_absolute_error",
@@ -332,10 +422,25 @@ def evaluate_forecaster(
             ),
             "elixir_values": elixir_values,
         }
+        values["entity_position_mae_tiles"] = (
+            aggregate["entity_position_absolute_error"] / aggregate["entity_position_values"]
+            if aggregate["entity_position_values"]
+            else 0.0
+        )
+        values["entity_position_values"] = aggregate["entity_position_values"]
+        values["entity_hp_mae"] = (
+            aggregate["entity_hp_absolute_error"] / aggregate["entity_hp_values"]
+            if aggregate["entity_hp_values"]
+            else 0.0
+        )
+        values["entity_hp_values"] = aggregate["entity_hp_values"]
         for key in (
             "entity_type_precision",
             "entity_type_recall",
             "entity_type_f1",
+            "entity_identity_precision",
+            "entity_identity_recall",
+            "entity_identity_f1",
             "predicted_entity_count",
             "actual_entity_count",
             "entity_count_absolute_error",
