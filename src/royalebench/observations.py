@@ -92,8 +92,23 @@ def build_observation(
     ]
 
     deck = _named(values("deck"), vocabulary)
+    deck_slot_flags = values("deck_slot")
+    deck_evolution_counts = values("deck_evolution")
+    deck_levels = values("deck_level")
     next_card = _name(vocabulary, scalar("next_card"))
-    enemy_seen = _named(values("enemy_seen"), vocabulary)
+    enemy_seen_ids = values("enemy_seen")
+    enemy_seen = _named(enemy_seen_ids, vocabulary)
+    enemy_seen_evolution = values("enemy_seen_evolution")
+    enemy_seen_evolution_need = values("enemy_seen_evolution_need")
+    seen_evolution_progress = [
+        {
+            "card": _name(vocabulary, card_id),
+            "progress": enemy_seen_evolution[index],
+            "required": enemy_seen_evolution_need[index],
+        }
+        for index, card_id in enumerate(enemy_seen_ids)
+        if _name(vocabulary, card_id) is not None
+    ]
 
     tower_names = (
         "own_king",
@@ -179,14 +194,11 @@ def build_observation(
     if enemy_play_count < 0:
         raise RuntimeError(f"CRForge reported a negative enemy play count: {enemy_play_count}")
 
-    # CRForge's enemy-play rows are newest-first (row 0 is the most recent play),
-    # whereas derive_opponent_cycle consumes a chronological, oldest-first ledger.
-    # Reverse only the actual rows: trailing unused rows must never enter the cycle.
-    visible_play_count = min(enemy_play_count, len(recent_plays))
-    cycle_ledger_oldest_first = list(reversed(recent_plays[:visible_play_count]))
+    # CRForge's bounded enemy-play ledger is already newest-first. The cycle tracker
+    # consumes that same order and slices only the actual play rows using play_count.
     opponent_cycle = derive_opponent_cycle(
         deck,
-        cycle_ledger_oldest_first,
+        recent_plays,
         play_count=enemy_play_count,
     )
 
@@ -224,10 +236,22 @@ def build_observation(
             "section": scalar("section"),
             "section_type": scalar("section_type"),
             "section_left_ms": scalar("section_left_ms"),
+            "full_bar_ms": scalar("full_bar_ms"),
             "overtime": bool(scalar("overtime")),
+            "play_open_in_ticks": scalar("play_open_in_ticks"),
             "decision_ticks": scalar("decision_ticks"),
             "play_delay_ticks": scalar("play_delay_ticks"),
             "result": scalar("result"),
+            "result_name": next(
+                (
+                    name
+                    for name, code in schema.results.items()
+                    if code == scalar("result")
+                ),
+                "unknown",
+            ),
+            "entity_count": scalar("entity_count"),
+            "entity_overflow": scalar("entity_overflow"),
         },
         "own": {
             "elixir_scaled": scalar("elixir"),
@@ -235,8 +259,12 @@ def build_observation(
             "elixir_reserved_scaled": scalar("elixir_reserved"),
             "elixir_reserved": scalar("elixir_reserved") / elixir_scale,
             "hand": hand,
+            "hand_refill_ms": scalar("hand_refill_ms"),
             "next_card": next_card,
             "deck": deck,
+            "deck_level": deck_levels,
+            "deck_slot_flags": deck_slot_flags,
+            "deck_evolution_counts": deck_evolution_counts,
             "queue": _named(values("queue"), vocabulary),
             "towers": {name: towers[name] for name in tower_names[:3]},
             "pending": pending,
@@ -248,7 +276,8 @@ def build_observation(
             "estimated_elixir": scalar("enemy_elixir") / elixir_scale,
             "elixir_estimate_source": "crforge-public-play-and-regeneration-accounting",
             "cards_seen": enemy_seen,
-            "play_count": scalar("enemy_play_count"),
+            "seen_evolution_progress": seen_evolution_progress,
+            "play_count": enemy_play_count,
             "recent_plays": recent_plays,
             "card_cycle": opponent_cycle,
             "towers": {name: towers[name] for name in tower_names[3:]},
@@ -266,9 +295,12 @@ def build_observation(
         },
         "engine": {
             "schema_version": schema.version,
+            "id_version": getattr(vector, "id_version", None),
+            "mask_version": vector.mask_version,
             "data_version": vector.data_version,
             "content_sha": vector.content_sha,
             "vocabulary_hash": vector.vocabulary_hash,
+            "max_elixir": getattr(vector, "max_elixir", None),
             "elixir_scale": elixir_scale,
             "tile_units": schema.tile_units,
         },
