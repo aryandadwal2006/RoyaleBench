@@ -231,3 +231,47 @@ def test_runner_aborts_external_worker_on_shared_deadline(tmp_path):
     )
     assert result.status == "agent_error"
     assert agent.aborted is True
+
+
+class OverflowOnResetEngine(FakeEngine):
+    def observe(self, seat):
+        observation = super().observe(seat)
+        observation["game"]["entity_overflow"] = 1
+        return observation
+
+
+class OverflowAfterStepEngine(FakeEngine):
+    def observe(self, seat):
+        observation = super().observe(seat)
+        observation["game"]["entity_overflow"] = int(self.tick > 0)
+        return observation
+
+
+def test_runner_voids_match_when_reset_observation_omits_entities(tmp_path):
+    engine = OverflowOnResetEngine()
+    result = MatchRunner(engine, profile="test", profile_ticks=5).run(
+        (NoOpAgent(), NoOpAgent()),
+        seed=7,
+        match_id="overflow-reset-test",
+        output_dir=tmp_path,
+    )
+    assert result.status == "engine_fault"
+    assert result.outcome == "void"
+    assert result.fault["kind"] == "observation_overflow"
+    assert "omitted 1 visible entities" in result.fault["message"]
+    assert engine.closed
+
+
+def test_runner_voids_match_when_next_observation_omits_entities(tmp_path):
+    engine = OverflowAfterStepEngine()
+    result = MatchRunner(engine, profile="test", profile_ticks=5).run(
+        (NoOpAgent(), NoOpAgent()),
+        seed=7,
+        match_id="overflow-step-test",
+        output_dir=tmp_path,
+    )
+    assert result.status == "engine_fault"
+    assert result.outcome == "void"
+    assert result.decisions == 0
+    assert result.fault["kind"] == "observation_overflow"
+    assert engine.closed
