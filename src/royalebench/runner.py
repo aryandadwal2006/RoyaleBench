@@ -378,7 +378,6 @@ class MatchRunner:
                                 "validated_action": parsed.action.type,
                                 "engine_action": encoded,
                                 "mask_open": mask_open,
-                                "latency_ms": latency_ms,
                             }
                         )
 
@@ -454,6 +453,8 @@ class MatchRunner:
                 if callable(finish):
                     finish_payload = {
                         "match_id": match_id,
+                        "seat": seat,
+                        "agent": agent.name,
                         "seed": int(seed),
                         "profile": self.profile,
                         "status": status,
