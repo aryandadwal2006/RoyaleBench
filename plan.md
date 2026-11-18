@@ -20,7 +20,7 @@ The existing RoyaleBench v1 repository is a useful engineering foundation, but i
 - one competitive testbed, not yet a broad benchmark suite;
 - random-legal and one rule-based agent as the implemented baselines;
 - a persistence forecaster, not a trained predictive world model;
-- no completed Windows headless acceptance run yet;
+- complete Windows headless v1 acceptance passed on 18 November 2026, but only on a three-seed smoke set;
 - no large-scale cross-play results from independent seed groups;
 - no demonstrated results from a serious learned policy or a frozen hosted-model participant.
 
@@ -519,12 +519,12 @@ Keep the current v1 acceptance surface stable. Add the research suite behind a n
 **Target:** 18–22 November
 
 - [x] Replace the duplicated hardcoded SHA comparison with a comparison against each submodule commit recorded by git ls-tree HEAD in the superproject.
-- [ ] Verify the updated PowerShell script on the user's Windows installation.
-- [ ] Run scripts/validate_v1.ps1 without -SkipBuild.
-- [ ] Confirm all three tests/test_crforge_native.py cases execute with zero skips.
-- [ ] Confirm upstream CRForge :env:test, Python tests, Ruff and config validation pass.
-- [ ] Complete both headless tournaments, trajectory export and persistence forecasting.
-- [ ] Archive the validation report, JUnit report, Gradle test report and the full timestamped result directory.
+- [x] Verify the updated PowerShell validation script on the user's Windows installation.
+- [x] Complete the local integrated validation run (2026-11-18; the existing engine build was reused with `-SkipBuild`).
+- [x] Confirm all three `tests/test_crforge_native.py` cases execute with zero skips.
+- [x] Confirm upstream CRForge `:env:test`, all Python tests (120 passed), Ruff and config validation pass.
+- [x] Complete both six-match headless tournaments, trajectory export and persistence forecasting.
+- [x] Preserve the complete local run directory `results/validation-20261118-171426/`, including validation report, JUnit report, Gradle test report and generated outputs.
 - [ ] Fix genuine failures at their source; never weaken acceptance checks merely to obtain a green run.
 
 **Exit gate:** a complete local Windows validation report with all expected matches, non-empty splits, forecast examples at every horizon and no failed/void acceptance matches.
@@ -874,12 +874,12 @@ The long-term agent-building programme is deliberately separate from this benchm
 
 ## 16. Immediate next actions
 
-1. Pull the latest main and rerun the bootstrap/acceptance after the submodule check fix. The new pin verifier reads the commit IDs from the actual superproject gitlinks. It has not yet been verified on the user's Windows machine.
-2. Complete the full scripts/validate_v1.ps1 run and archive its output.
-3. Keep the existing v1 configuration frozen; create a separate ICML research configuration.
-4. Write the prior-work comparison and freeze three candidate deck archetypes after engine-fidelity checks.
-5. Implement deterministic replay-prefix reconstruction before claiming counterfactual action quality.
-6. Implement the additional matchup, paired-difference statistics and baseline agent work packages in the order above.
-7. Draft the paper's Introduction, Related Work and Environment sections while the research layer is being implemented.
+1. Preserve the successful v1 acceptance artifact and keep the current v1 configuration frozen. Do not use the three-seed smoke output as paper evidence.
+2. Complete WP1 (19–26 November): related-work comparison, one-page novelty memo, explicit research questions/hypotheses, verified candidate decks, primary outcomes and predeclared statistical protocol.
+3. Audit the baseline anomaly: random-legal won 5/6 against the in-process Hog-cycle baseline and 6/6 against the JSONL Hog worker. Check policy logic, worker/in-process parity and action traces before strength comparisons.
+4. Create a separate research config and implement three engine-verified archetypes with mirror/cross-matchups and paired seat swaps.
+5. Build deterministic seed-plus-action-prefix reconstruction and the counterfactual candidate-set regret diagnostic. Verify state hashes and ticks before interpreting the metric.
+6. Add deck-aware, imitation, PPO, search and selected LLM/VLM baselines only where they support a frozen hypothesis.
+7. Draft the Introduction, Related Work and Environment sections in parallel with WP1–WP3.
 
-**Current status:** drafting can begin immediately. Final empirical claims, benchmark-release readiness and submission readiness remain blocked on the work packages above.
+**Current status:** v1 software acceptance is complete. Scientific scope, research implementation, large-scale evaluation and submission readiness remain outstanding.
