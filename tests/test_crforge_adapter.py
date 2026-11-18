@@ -174,12 +174,12 @@ def test_initial_observations_reject_mismatched_v1_setup(mutation, message):
         )
 
 
-def test_initial_observations_reject_seat_deck_disagreement():
+def test_initial_observations_reject_noncanonical_second_seat_deck():
     observations = [dict(row) for row in _observations()]
     observations[1] = deepcopy(observations[1])
     observations[1]["own"]["deck"] = list(reversed(V1Config().deck))
 
-    with pytest.raises(CrforgeEngineError, match="same mirrored v1 deck"):
+    with pytest.raises(CrforgeEngineError, match="frozen v1 deck"):
         _validate_initial_observations(
             tuple(observations),
             deck_rows=tuple(V1Config().deck),
