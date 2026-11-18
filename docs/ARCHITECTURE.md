@@ -1,8 +1,8 @@
 # RoyaleBench Architecture and Design Specification
 
-**Status:** Proposed architecture, not yet implemented.  
+**Status:** Architecture and implementation record. The v1 implementation status and remaining acceptance gates are tracked in [ROADMAP.md](ROADMAP.md).  
 **Repository:** aryandadwal2006/RoyaleBench  
-**Decision baseline:** 2026-11-17  
+**Decision baseline:** 2026-11-18  
 **Scope:** Offline, reproducible 1v1 Clash Royale-style competition for agents supplied by research groups.
 
 ---
