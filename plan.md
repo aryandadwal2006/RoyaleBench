@@ -43,6 +43,8 @@ The make-or-break contribution is the causal decomposition of the visual-to-stru
 
 ---
 
+**Venue decision:** CVPR 2027 is no longer a viable new-submission target as of 18 November 2026: its paper registration deadline was 10 November AoE and its submission deadline was 16 November AoE. The 23 November supplementary-material cutoff is only for papers already submitted; it does not reopen submissions. The research plan therefore targets ICML 2027. Official CVPR dates: https://cvpr.thecvf.com/Conferences/2027/CallForPapers.
+
 ## 1. ICML 2027 target and constraints
 
 The official ICML 2027 Call for Papers currently lists:
