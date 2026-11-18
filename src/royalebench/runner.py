@@ -207,7 +207,7 @@ class MatchRunner:
                             mtime=0,
                         ),
                         encoding="utf-8",
-                        newline="\\n",
+                        newline="\n",
                     )
                     if trajectory_path is not None
                     else _null_writer()
