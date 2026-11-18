@@ -143,6 +143,8 @@ The user's run used Python 3.14.5, Java 21.0.13 and `-SkipBuild`. The pinned CRF
 
 The user's desktop visualizer run establishes that the CRForge desktop runtime starts and supports manual play. It does not substitute for headless adapter acceptance.
 
+The detailed ICML 2027 research and implementation plan is maintained at the repository root in [plan.md](../plan.md). This roadmap remains the implementation-status record; the plan defines the research additions and paper schedule.
+
 ## Paper drafting readiness
 
 The non-empirical paper sections can be drafted now: motivation, related work, benchmark design, observation/action contracts, simulator integration, tournament protocol, dataset construction and limitations. Keep the results section provisional until the complete local acceptance run and a larger frozen evaluation have finished.
