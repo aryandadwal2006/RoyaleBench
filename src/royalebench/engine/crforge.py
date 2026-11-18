@@ -61,6 +61,108 @@ class BattleStep:
     fault: dict[str, Any] | None
 
 
+def _validate_runtime_metadata(
+    metadata: dict[str, Any],
+    *,
+    config: V1Config,
+    decision_ticks: int,
+    schema: Any,
+    id_version: int | None,
+) -> None:
+    """Reject an installed CRForge build whose runtime rules differ from the v1 contract."""
+    expected_config = {
+        "decision_ticks": int(decision_ticks),
+        "level": config.card_level,
+        "tower_level": config.tower_level,
+        "max_ticks": config.max_ticks,
+    }
+    actual_config = metadata.get("config")
+    if not isinstance(actual_config, dict):
+        raise CrforgeEngineError("CRForge metadata does not expose its effective Ladder config")
+    for key, expected in expected_config.items():
+        actual = actual_config.get(key)
+        if actual != expected:
+            raise CrforgeEngineError(
+                f"CRForge config mismatch for {key}: expected {expected}, got {actual!r}"
+            )
+
+    if metadata.get("mask_version") != config.mask_version:
+        raise CrforgeEngineError(
+            f"CRForge metadata mask_version is {metadata.get('mask_version')!r}; "
+            f"v1 requires {config.mask_version}"
+        )
+    if id_version != 2:
+        raise CrforgeEngineError(
+            f"CRForge entity id_version is {id_version!r}; v1 requires seat-first-sight version 2"
+        )
+    if int(schema.play_delay_ticks) != 20:
+        raise CrforgeEngineError(
+            f"CRForge native PlayerCommands delay is {schema.play_delay_ticks} ticks; v1 requires 20"
+        )
+
+
+def _validate_initial_observations(
+    observations: tuple[dict[str, Any], dict[str, Any]],
+    *,
+    deck_rows: tuple[str, ...],
+    config: V1Config,
+    decision_ticks: int,
+) -> None:
+    """Check the reset state agrees with the configured symmetric v1 match."""
+    for seat, observation in enumerate(observations):
+        if observation.get("seat") != seat:
+            raise CrforgeEngineError(
+                f"CRForge returned seat {observation.get('seat')!r} in observation slot {seat}"
+            )
+        if observation.get("game", {}).get("tick") != 0:
+            raise CrforgeEngineError("CRForge reset did not begin at game tick 0")
+        game = observation.get("game", {})
+        if game.get("decision_ticks") != decision_ticks:
+            raise CrforgeEngineError(
+                f"seat {seat} reports decision_ticks={game.get('decision_ticks')!r}, "
+                f"expected {decision_ticks}"
+            )
+        if game.get("play_delay_ticks") != 20:
+            raise CrforgeEngineError(
+                f"seat {seat} reports play_delay_ticks={game.get('play_delay_ticks')!r}, expected 20"
+            )
+        own = observation.get("own", {})
+        if own.get("deck") != list(deck_rows):
+            raise CrforgeEngineError(
+                f"seat {seat} received a deck different from the frozen v1 deck: {own.get('deck')!r}"
+            )
+        if own.get("deck_level") != [config.card_level] * 8:
+            raise CrforgeEngineError(
+                f"seat {seat} deck levels do not match configured level {config.card_level}: "
+                f"{own.get('deck_level')!r}"
+            )
+        towers = own.get("towers", {})
+        enemy_towers = observation.get("opponent", {}).get("towers", {})
+        king_hp = towers.get("own_king", {}).get("max_hp")
+        enemy_king_hp = enemy_towers.get("enemy_king", {}).get("max_hp")
+        princess_hp = {
+            towers.get("own_left", {}).get("max_hp"),
+            towers.get("own_right", {}).get("max_hp"),
+            enemy_towers.get("enemy_left", {}).get("max_hp"),
+            enemy_towers.get("enemy_right", {}).get("max_hp"),
+        }
+        if king_hp is None or king_hp != enemy_king_hp:
+            raise CrforgeEngineError(
+                f"seat {seat} king tower levels are not mirrored: own={king_hp}, enemy={enemy_king_hp}"
+            )
+        if None in princess_hp or len(princess_hp) != 1:
+            raise CrforgeEngineError(
+                f"seat {seat} princess tower max HP is not equal across both sides: {princess_hp}"
+            )
+
+    if observations[0]["own"]["deck"] != observations[1]["own"]["deck"]:
+        raise CrforgeEngineError("the two seats did not receive the same mirrored v1 deck")
+    if observations[0]["own"]["elixir_scaled"] != observations[0]["opponent"]["estimated_elixir_scaled"]:
+        raise CrforgeEngineError("seat 0 initial public opponent elixir differs from starting elixir")
+    if observations[1]["own"]["elixir_scaled"] != observations[1]["opponent"]["estimated_elixir_scaled"]:
+        raise CrforgeEngineError("seat 1 initial public opponent elixir differs from starting elixir")
+
+
 class CrforgeBattle:
     """One synchronized two-seat battle driven by the CRForge JVM environment."""
 
@@ -97,6 +199,7 @@ class CrforgeBattle:
 
         self.config = config
         self.schema = self.vector.schema
+        self.decision_ticks = int(decision_ticks)
         self.vector.set_autoreset(False)
         if (self.schema.cols, self.schema.rows) != (18, 32):
             self.close()
@@ -110,6 +213,21 @@ class CrforgeBattle:
                 f"CRForge mask version is {self.vector.mask_version}; "
                 "v1 requires MASK_ALL_TILES=1"
             )
+        try:
+            _validate_runtime_metadata(
+                self.vector.metadata,
+                config=config,
+                decision_ticks=self.decision_ticks,
+                schema=self.schema,
+                id_version=self.vector.id_version,
+            )
+        except CrforgeEngineError:
+            self.close()
+            raise
+        except Exception as exc:
+            self.close()
+            raise CrforgeEngineError(f"could not validate CRForge runtime metadata: {exc}") from exc
+
         wanted_version = expected_data_version or config.data_version
         if self.vector.data_version != wanted_version:
             actual = self.vector.data_version
@@ -145,7 +263,14 @@ class CrforgeBattle:
         if bool(self.vector.dones[0]):
             fault = self.vector.fault(0)
             raise CrforgeEngineError(f"CRForge faulted during reset: {fault}")
-        return self.observe(0), self.observe(1)
+        observations = (self.observe(0), self.observe(1))
+        _validate_initial_observations(
+            observations,
+            deck_rows=self.deck_rows,
+            config=self.config,
+            decision_ticks=self.decision_ticks,
+        )
+        return observations
 
     def observe(self, seat: int) -> dict[str, Any]:
         if seat not in (0, 1):
