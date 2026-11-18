@@ -106,6 +106,7 @@ This process boundary limits accidental credential exposure and provides startup
 - [Agent protocol](docs/AGENT_PROTOCOL.md)
 - [Trajectory dataset and forecasting](docs/DATASET.md)
 - [Benchmark card and limitations](docs/BENCHMARK_CARD.md)
+- [FAIR observation provenance audit](docs/FAIRNESS_AUDIT.md)
 - [Implementation roadmap and acceptance gates](docs/ROADMAP.md)
 
 ## Repository status
