@@ -65,7 +65,7 @@ External pretrained agents are not official leaderboard entries until licensing,
 - CRForge is a deterministic offline engine with a bounded conformance/fidelity scope. Results are conditional on its pinned commit and locally obtained game data.
 - The engine's game tables are not distributed by RoyaleBench. Users must obtain/build them through the documented upstream process.
 - The subprocess adapter restricts inherited environment variables and enforces timeouts, but is not an OS/container security boundary.
-- The opponent elixir and card-cycle estimates are derived from public observations and engine accounting; their edge cases require further differential testing.
+- Opponent elixir is CRForge's seat-side `ElixirCount` accounting, explicitly derived from what that seat can see rather than the opponent's hidden elixir field. CRForge documents one known source of drift: champion ability refunds that are not shown to the opponent. The fixed Hog 2.6 v1 deck has no champion, so that refund path is outside the v1 deck; this still needs a v1-specific integration test. Public opponent card-cycle inference remains bounded by what the play ledger has revealed.
 - Forecasting metrics currently cover visible tower HP, elixir, entity-type counts and entity-count error. Stable entity identity, movement trajectories and event-timing metrics are not yet implemented.
 - Final local Windows headless acceptance against the user's installed CRForge build remains outstanding. The desktop visualizer smoke test does not prove headless adapter correctness.
 - The upstream CRForge test failures previously observed by the project owner have not yet been reconciled with the exact test log.
