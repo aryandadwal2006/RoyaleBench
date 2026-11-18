@@ -5,6 +5,8 @@ from __future__ import annotations
 import contextlib
 import copy
 import gzip
+import hashlib
+import inspect
 import io
 import json
 import statistics
@@ -43,6 +45,62 @@ class MatchResult:
 
 class AgentExecutionError(RuntimeError):
     """An agent raised an exception or returned an invalid response."""
+
+
+def _agent_manifest_entry(agent: Agent, seat: int) -> dict[str, Any]:
+    """Return auditable agent configuration without copying secret values."""
+    cls = type(agent)
+    entry: dict[str, Any] = {
+        "name": agent.name,
+        "seat": seat,
+        "implementation": f"{cls.__module__}.{cls.__qualname__}",
+    }
+    try:
+        source = inspect.getsource(cls).encode("utf-8")
+    except (OSError, TypeError):
+        source = b""
+    if source:
+        entry["implementation_sha256"] = hashlib.sha256(source).hexdigest()
+
+    if hasattr(agent, "model"):
+        entry["model"] = str(getattr(agent, "model"))
+        entry["provider"] = "openai-compatible"
+        entry["base_url"] = str(getattr(agent, "base_url", ""))
+        entry["temperature"] = float(getattr(agent, "temperature", 0.0))
+        entry["max_tokens"] = int(getattr(agent, "max_tokens", 0))
+
+    if hasattr(agent, "wait_probability"):
+        entry["wait_probability"] = float(getattr(agent, "wait_probability"))
+    if hasattr(agent, "seed_offset"):
+        entry["seed_offset"] = int(getattr(agent, "seed_offset"))
+
+    command = getattr(agent, "command", None)
+    if isinstance(command, (list, tuple)) and command:
+        entry["execution"] = "jsonl-subprocess"
+        entry["command_executable"] = Path(str(command[0])).name
+        entry["command_argument_count"] = max(0, len(command) - 1)
+        entry["working_directory_configured"] = getattr(agent, "cwd", None) is not None
+        entry["timeout_s"] = float(getattr(agent, "timeout_s", 0.0))
+        entry["startup_timeout_s"] = float(getattr(agent, "startup_timeout_s", 0.0))
+        entry["shutdown_timeout_s"] = float(getattr(agent, "shutdown_timeout_s", 0.0))
+        environment = getattr(agent, "environment", {})
+        if isinstance(environment, dict):
+            entry["explicit_environment_keys"] = sorted(environment)
+        if len(command) > 1:
+            script_path = Path(str(command[1]))
+            cwd = getattr(agent, "cwd", None)
+            if not script_path.is_absolute() and cwd is not None:
+                script_path = Path(cwd) / script_path
+            if script_path.is_file():
+                digest = hashlib.sha256()
+                with script_path.open("rb") as handle:
+                    for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                        digest.update(chunk)
+                entry["worker_script_sha256"] = digest.hexdigest()
+    else:
+        entry["execution"] = "in-process"
+
+    return entry
 
 
 class MatchRunner:
@@ -157,7 +215,9 @@ class MatchRunner:
                 "mask_version": self.engine.config.mask_version,
             },
             "engine": self.engine.metadata,
-            "agents": [{"name": agent.name, "seat": seat} for seat, agent in enumerate(agents)],
+            "agents": [
+                _agent_manifest_entry(agent, seat) for seat, agent in enumerate(agents)
+            ],
         }
         if destination is not None:
             self._write_json(destination / "manifest.json", manifest)
