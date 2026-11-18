@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from types import SimpleNamespace
 
 import pytest
@@ -137,19 +138,7 @@ def test_initial_observations_accept_equal_mirrored_match():
     ],
 )
 def test_initial_observations_reject_mismatched_v1_setup(mutation, message):
-    observations = [dict(item) for item in _observations()]
-    for item in observations:
-        item["own"] = dict(item["own"])
-        item["game"] = dict(item["game"])
-        item["opponent"] = dict(item["opponent"])
-        item["own"]["towers"] = dict(item["own"]["towers"])
-        item["opponent"]["towers"] = dict(item["opponent"]["towers"])
-    # Make nested tower dictionaries independent before applying a one-field mutation.
-    for item in observations:
-        item["own"]["towers"] = {key: dict(value) for key, value in item["own"]["towers"].items()}
-        item["opponent"]["towers"] = {
-            key: dict(value) for key, value in item["opponent"]["towers"].items()
-        }
+    observations = deepcopy(_observations())
     mutation(observations)
     with pytest.raises(CrforgeEngineError, match=message):
         _validate_initial_observations(
