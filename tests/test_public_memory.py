@@ -9,7 +9,7 @@ DECK = [
 
 
 def rows(*cards):
-    return [{"card": card, "flags": 1} for card in cards]
+    return [{"card": card, "card_shown": True} for card in cards]
 
 
 def test_cycle_is_uncertain_before_four_public_card_plays():
