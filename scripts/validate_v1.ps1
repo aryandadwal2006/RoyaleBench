@@ -49,6 +49,15 @@ else {
     if ($LASTEXITCODE -ne 0) { throw "Could not install RoyaleBench dependencies." }
 }
 
+$ExpectedCrforgeCommit = "fa5959055c590a493d62c8dbc804e602832d08a6"
+$ActualCrforgeCommit = & git -C $CrforgeRoot rev-parse HEAD
+if ($LASTEXITCODE -ne 0) {
+    throw "Could not read the pinned CRForge submodule commit."
+}
+if ($ActualCrforgeCommit.Trim() -ne $ExpectedCrforgeCommit) {
+    throw "CRForge commit mismatch. Expected $ExpectedCrforgeCommit, found $($ActualCrforgeCommit.Trim())."
+}
+
 & $Python -m pip install -e (Join-Path $Root "third_party\upstream\crforge\python")
 if ($LASTEXITCODE -ne 0) { throw "Could not install the pinned crforge-env package." }
 
@@ -99,12 +108,40 @@ $TournamentJson = Get-Content (Join-Path $TournamentRoot "tournament.json") -Raw
 $ExternalTournamentJson = Get-Content (Join-Path $ExternalTournamentRoot "tournament.json") -Raw | ConvertFrom-Json
 $DatasetJson = Get-Content (Join-Path $DatasetRoot "dataset_manifest.json") -Raw | ConvertFrom-Json
 $ForecastJson = Get-Content $ForecastReportPath -Raw | ConvertFrom-Json
+
+foreach ($Tournament in @($TournamentJson, $ExternalTournamentJson)) {
+    if ($Tournament.total_matches -lt 1 -or $Tournament.completed_matches -ne $Tournament.total_matches) {
+        throw "Tournament acceptance requires every scheduled match to complete."
+    }
+}
+foreach ($SplitName in @("train", "validation", "test")) {
+    $SplitProperty = $DatasetJson.splits.PSObject.Properties[$SplitName]
+    if ($null -eq $SplitProperty) {
+        throw "Dataset manifest is missing the $SplitName split."
+    }
+    $Split = $SplitProperty.Value
+    if ($Split.match_count -lt 1 -or $Split.transition_count -lt 1 -or [string]::IsNullOrWhiteSpace($Split.sha256)) {
+        throw "Dataset $SplitName split must contain matches, transitions and a SHA-256."
+    }
+}
+foreach ($Horizon in @("1", "2", "4")) {
+    $HorizonProperty = $ForecastJson.horizons.PSObject.Properties[$Horizon]
+    if ($null -eq $HorizonProperty -or $HorizonProperty.Value.examples -lt 1) {
+        throw "Forecast evaluation is missing examples for horizon $Horizon."
+    }
+}
+if ($ForecastJson.input_contract -ne "source_observation_plus_intervening_actions_only") {
+    throw "Forecast report does not declare the required action-conditioned input contract."
+}
 $Report = [ordered]@{
     status = "passed"
     started_at = $Started.ToString("o")
     completed_at = (Get-Date).ToString("o")
     python = $PythonVersion
     java = $JavaVersion
+    crforge_commit = $ActualCrforgeCommit.Trim()
+    game_data_version = "16.635.8"
+    game_data_content_sha = "062a11e0500c03cc041f123413b1ef1846b539a4"
     profile = $Profile
     native_engine_tests = "passed"
     native_engine_test_report = (Join-Path $CrforgeRoot "env\build\reports\tests\test\index.html")
