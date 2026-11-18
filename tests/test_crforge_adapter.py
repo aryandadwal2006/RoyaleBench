@@ -8,6 +8,7 @@ import pytest
 from royalebench.config import V1_CONTENT_SHA, V1Config
 from royalebench.engine.crforge import (
     CrforgeEngineError,
+    _resolve_deck_rows,
     _validate_game_data_identity,
     _validate_initial_observations,
     _validate_runtime_metadata,
@@ -55,6 +56,32 @@ def _observations():
             }
         )
     return tuple(seats)
+
+
+def test_v1_deck_display_names_resolve_to_pinned_crforge_table_rows():
+    # The table's internal row names differ from the public Clash Royale names
+    # for Ice Golem, Ice Spirit and The Log.
+    vocabulary = (
+        "Cannon",
+        "Fireball",
+        "HogRider",
+        "IceGolemite",
+        "IceSpirits",
+        "Musketeer",
+        "Skeletons",
+        "Log",
+        "SuperIceGolemite",
+    )
+    assert _resolve_deck_rows(V1Config().deck, vocabulary) == (
+        "Cannon",
+        "Fireball",
+        "HogRider",
+        "IceGolemite",
+        "IceSpirits",
+        "Musketeer",
+        "Skeletons",
+        "Log",
+    )
 
 
 def test_runtime_metadata_accepts_the_frozen_crforge_contract():
