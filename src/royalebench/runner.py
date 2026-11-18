@@ -159,6 +159,10 @@ class MatchRunner:
                 "engine": self.engine.metadata,
             }
             for seat, agent in enumerate(agents):
+                set_timeout = getattr(agent, "set_timeout", None)
+                configured_timeout = getattr(agent, "timeout_s", self.request_timeout_s)
+                if callable(set_timeout):
+                    set_timeout(min(float(configured_timeout), self.request_timeout_s))
                 agent.reset({**reset_info, "seat": seat})
 
             observations = self.engine.reset(seed, match_id=match_id)
