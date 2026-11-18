@@ -272,12 +272,23 @@ class TournamentRunner:
             engine = manifest_payload.get("engine", {})
             fingerprint = json.dumps(engine, sort_keys=True, separators=(",", ":"))
             engine_fingerprints[fingerprint] = engine
-            digest = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
+            match_files = {}
+            for artifact_name in ("manifest.json", "result.json", "trajectory.jsonl.gz"):
+                artifact_path = match_directory / artifact_name
+                if artifact_path.is_file():
+                    match_files[artifact_name] = {
+                        "path": str(artifact_path.relative_to(root)),
+                        "sha256": hashlib.sha256(artifact_path.read_bytes()).hexdigest(),
+                        "size_bytes": artifact_path.stat().st_size,
+                    }
+            if "manifest.json" not in match_files or "result.json" not in match_files:
+                raise RuntimeError(
+                    f"match {match_id} is missing its manifest or result artifact"
+                )
             match_manifest_entries.append(
                 {
                     "match_id": match_id,
-                    "path": str(manifest_path.relative_to(root)),
-                    "sha256": digest,
+                    "files": match_files,
                 }
             )
 
