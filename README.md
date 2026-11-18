@@ -6,7 +6,8 @@ RoyaleBench provides a pinned offline battle environment, player-visible observa
 
 ## V1 scope
 
-- One canonical simulator: [CRForge](https://github.com/voonhous/crforge), pinned as a submodule.
+- One canonical simulator: [CRForge](https://github.com/voonhous/crforge), pinned to `fa5959055c590a493d62c8dbc804e602832d08a6` as a submodule.
+- One canonical game-data build: `16.635.8`, content SHA `062a11e0500c03cc041f123413b1ef1846b539a4`.
 - Fixed mirrored Hog 2.6 deck, equal card/tower levels, deterministic match seeds.
 - CRForge's 18 × 32 tile-centre action grid and native PlayerCommands placement semantics.
 - MASK_ALL_TILES=1: every tap tile is available for a playable card slot; CRForge retains its own placement search.
