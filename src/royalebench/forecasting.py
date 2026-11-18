@@ -8,11 +8,14 @@ from __future__ import annotations
 
 import copy
 import gzip
+import hashlib
 import json
 import math
 from collections import defaultdict
 from pathlib import Path
 from typing import Any, Protocol
+
+from royalebench.observations import observation_hash
 
 
 class Forecaster(Protocol):
@@ -129,6 +132,40 @@ def _score_pair(
     }
 
 
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _verify_dataset_shard(path: Path) -> dict[str, Any]:
+    manifest_path = path.parent / "dataset_manifest.json"
+    if not manifest_path.is_file():
+        raise FileNotFoundError(
+            f"dataset_manifest.json is required beside forecast split: {path.parent}"
+        )
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    split_name = path.name.removesuffix(".jsonl.gz")
+    split_info = manifest.get("splits", {}).get(split_name)
+    if not isinstance(split_info, dict):
+        raise ValueError(f"split {split_name!r} is not listed in {manifest_path}")
+    if split_info.get("path") != path.name:
+        raise ValueError("dataset manifest split path does not match requested shard")
+    expected = split_info.get("sha256")
+    actual = _sha256_file(path)
+    if not isinstance(expected, str) or expected != actual:
+        raise ValueError(f"dataset shard SHA-256 mismatch: {path}")
+    return {
+        "manifest_path": str(manifest_path),
+        "manifest_split": split_name,
+        "manifest_sha256": _sha256_file(manifest_path),
+        "shard_sha256": actual,
+        "dataset_version": manifest.get("dataset_version"),
+    }
+
+
 def evaluate_forecaster(
     split_path: str | Path,
     forecaster: Forecaster,
@@ -141,14 +178,26 @@ def evaluate_forecaster(
     if len(set(horizons)) != len(horizons):
         raise ValueError("horizons must be unique")
 
+    source_path = Path(split_path)
+    if not source_path.is_file():
+        raise FileNotFoundError(source_path)
+    provenance = _verify_dataset_shard(source_path)
     grouped: dict[tuple[str, int], list[dict[str, Any]]] = defaultdict(list)
-    with gzip.open(split_path, "rt", encoding="utf-8") as handle:
+    with gzip.open(source_path, "rt", encoding="utf-8") as handle:
         for line_number, line in enumerate(handle, start=1):
             if not line.strip():
                 continue
             record = json.loads(line)
             if record.get("schema") != "royalebench.transition.v1":
                 raise ValueError(f"unsupported transition schema at line {line_number}")
+            observation = record.get("observation")
+            next_observation = record.get("next_observation")
+            if not isinstance(observation, dict) or not isinstance(next_observation, dict):
+                raise ValueError(f"missing observations at line {line_number}")
+            if record.get("observation_hash") != observation_hash(observation):
+                raise ValueError(f"observation hash mismatch at line {line_number}")
+            if record.get("next_observation_hash") != observation_hash(next_observation):
+                raise ValueError(f"next-observation hash mismatch at line {line_number}")
             grouped[(str(record["match_id"]), int(record["seat"]))].append(record)
 
     totals: dict[int, dict[str, float]] = {
@@ -197,7 +246,8 @@ def evaluate_forecaster(
     return {
         "schema": "royalebench.forecast-evaluation.v1",
         "forecaster": forecaster.name,
-        "split_path": str(Path(split_path)),
+        "split_path": str(source_path),
+        "dataset_provenance": provenance,
         "horizon_unit": "decision_intervals",
         "horizons": results,
         "input_contract": "source_observation_plus_intervening_actions_only",
