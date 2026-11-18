@@ -538,7 +538,7 @@ The environment must separate training, validation and hidden evaluation data. P
 
 ## 14. Intended source tree
 
-The detailed tree is recorded in the repository README and ROADMAP. Conceptually:
+The v1 runtime is pinned to CRForge commit `fa5959055c590a493d62c8dbc804e602832d08a6` and game-data version `16.635.8` with content SHA `062a11e0500c03cc041f123413b1ef1846b539a4`; startup rejects a different source checkout or data fingerprint. The detailed tree is recorded in the repository README and ROADMAP. Conceptually:
 
 - third_party/upstream: pinned source references only;
 - src/royalebench/engine: crforge adapter and engine capability checks;
