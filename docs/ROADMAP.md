@@ -93,14 +93,16 @@ Visual agents, real-time wall-clock competition, deck construction, alternate-en
 - [x] Make gzip output deterministic and prevent accidental overwrite of an existing dataset.
 - [x] Define ForecastRequestV1 and ForecastResponseV1 schemas bound to observation hashes and forecast horizons.
 - [x] Implement a persistence baseline and action-conditioned multi-horizon forecasting evaluator.
-- [x] Implement multi-horizon metrics for visible tower HP, elixir, entity-type precision/recall/F1 and entity-count error, skipping missing numeric fields.
+- [x] Implement multi-horizon metrics for visible tower HP, elixir, entity-type counts, stable entity-ID precision/recall/F1, matched-entity position error, visible entity HP and entity-count error, skipping unavailable values.
+- [x] Validate trajectory decision continuity, seat/match identity, engine-tick intervals and chained observation hashes before forecasting.
+- [x] Document the Python Forecaster protocol so learned checkpoints can be adapted without adding their training stack to RoyaleBench.
 - [x] Add held-out prediction evaluation CLI and JSON report generation.
 - [x] Keep outcomes and future observations outside the predictor call; test the action-prefix input contract.
 - [x] Verify the dataset shard against its manifest SHA-256 and validate source/target observation hashes before forecasting.
 
 ## Remaining release work
 
-1. Add a documented learned-predictor adapter entry point and broaden forecasting metrics to entity identity, movement and event timing where CRForge exposes reliable stable identifiers.
+1. Add forecast event-timing metrics for public card plays and other event types where the observation contract exposes unambiguous event identities.
 2. Execute and reconcile the native two-seat FAIR and elixir tests.
 3. Reconcile FirstLight and Hasty policies: inspect pinned source, checkpoint availability, licences, input/output semantics and card/version compatibility. If adaptation is not defensible, document them as external references rather than forcing them into v1.
 4. Add canonical replay/result fingerprints and paper-ready CSV/JSON summaries.
