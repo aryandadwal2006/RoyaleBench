@@ -130,12 +130,12 @@ Use `-SkipBuild` only after a successful engine build has already created the ru
 
 A complete run must finish with:
 - Pinned CRForge `:env:test` native environment suite passing.
-- All RoyaleBench Python tests passing, including the three native CRForge integration tests without skips.
+- All RoyaleBench Python tests passing; the JUnit report must show at least three native CRForge integration tests collected and zero skipped.
 - Ruff and v1 configuration validation passing.
 - Real headless CRForge matches completing for both seats in the paired baseline tournament and the external JSONL-worker tournament.
 - Non-empty train, validation and test trajectory splits with a valid dataset manifest and hashes.
 - Held-out persistence forecasting completing at horizons 1, 2 and 4.
-- A validation report recording software versions, engine version/hash, match counts, split counts and output paths.
+- A validation report recording software versions, engine version/hash, match counts, split counts and output paths, alongside the pytest JUnit report.
 
 ### Observed partial Windows run (2026-11-18)
 
