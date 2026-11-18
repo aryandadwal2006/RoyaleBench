@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import pytest
 
 from royalebench.protocol.actions import ActionResolution, PlayAction

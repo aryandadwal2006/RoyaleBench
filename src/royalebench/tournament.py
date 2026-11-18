@@ -6,8 +6,10 @@ import csv
 import json
 import re
 from collections import defaultdict
+from collections.abc import Callable
+from contextlib import suppress
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from royalebench.agents.base import Agent
 from royalebench.ratings.glicko2 import PeriodGame, Rating, update_rating_period
@@ -45,7 +47,7 @@ class TournamentRunner:
         seeds: list[int],
         *,
         output_dir: str | Path,
-        initial_rating: Rating = Rating(),
+        initial_rating: Rating | None = None,
     ) -> dict[str, Any]:
         if len(agent_factories) < 2:
             raise ValueError("a round-robin tournament requires at least two agents")
@@ -81,14 +83,10 @@ class TournamentRunner:
                         )
                         if agents[0].name != ordered[0] or agents[1].name != ordered[1]:
                             for agent in agents:
-                                try:
+                                with suppress(Exception):
                                     agent.close()
-                                except Exception:
-                                    pass
-                            try:
+                            with suppress(Exception):
                                 engine.close()
-                            except Exception:
-                                pass
                             raise ValueError(
                                 "agent factory keys must match each created agent's .name"
                             )
@@ -113,16 +111,19 @@ class TournamentRunner:
         for result in completed:
             seat0, seat1 = result.agents
             if seat0.endswith("@seat0") and seat1.endswith("@seat1"):
-                # Self-play is not scheduled by round-robin, so this is only defensive.
                 continue
-            if result.outcome == "draw":
-                score0 = 0.5
-            else:
-                score0 = 1.0 if result.winner == 0 else 0.0
+            score0 = (
+                0.5
+                if result.outcome == "draw"
+                else 1.0
+                if result.winner == 0
+                else 0.0
+            )
             period_games[seat0].append(PeriodGame(seat1, score0))
             period_games[seat1].append(PeriodGame(seat0, 1.0 - score0))
 
-        ratings = {name: initial_rating for name in players}
+        starting_rating = initial_rating if initial_rating is not None else Rating()
+        ratings = {name: starting_rating for name in players}
         ratings = update_rating_period(ratings, period_games)
         summary = {
             "schema": "royalebench.tournament-result.v1",

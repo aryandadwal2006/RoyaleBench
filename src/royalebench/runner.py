@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import gzip
 import json
 import statistics
@@ -15,7 +16,7 @@ from typing import Any
 from royalebench.agents.base import Agent
 from royalebench.observations import OBSERVATION_SCHEMA, observation_hash
 from royalebench.protocol.actions import ActionResolution
-from royalebench.protocol.responses import AgentResponse, RESPONSE_SCHEMA
+from royalebench.protocol.responses import RESPONSE_SCHEMA, AgentResponse
 
 
 @dataclass(frozen=True, slots=True)
@@ -284,14 +285,10 @@ class MatchRunner:
             fault = {"kind": "runner_error", "exception": type(exc).__name__, "message": str(exc)}
         finally:
             for agent in agents:
-                try:
+                with contextlib.suppress(Exception):
                     agent.close()
-                except Exception:
-                    pass
-            try:
+            with contextlib.suppress(Exception):
                 self.engine.close()
-            except Exception:
-                pass
 
         latency_summary = {
             names[seat]: self._latency_summary(latencies[seat]) for seat in (0, 1)

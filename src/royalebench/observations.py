@@ -1,7 +1,5 @@
 """Convert CRForge's seat-visible integer observation into RoyaleBench ObservationV1."""
 
-from __future__ import annotations
-
 import hashlib
 import json
 from typing import Any
