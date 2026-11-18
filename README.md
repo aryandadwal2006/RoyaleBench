@@ -108,6 +108,10 @@ python -m royalebench tournament `
 
 This process boundary limits accidental credential exposure and provides startup/decision timeouts, but it is not an OS security sandbox. Do not run untrusted participants under your personal account without an additional container or OS isolation layer.
 
+## Research plan
+
+- [ICML 2027 research and implementation plan](plan.md)
+
 ## Benchmark documentation
 
 - [Architecture and design](docs/ARCHITECTURE.md)
