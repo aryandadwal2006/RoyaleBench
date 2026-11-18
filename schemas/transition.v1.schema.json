@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:royalebench:transition:v1",
+  "title": "RoyaleBench TransitionV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "match_id",
+    "seed",
+    "seat",
+    "decision_id",
+    "engine_tick",
+    "action",
+    "observation",
+    "next_observation",
+    "observation_hash",
+    "next_observation_hash",
+    "match_outcome"
+  ],
+  "properties": {
+    "schema": {
+      "const": "royalebench.transition.v1"
+    },
+    "match_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "seed": {
+      "type": "integer"
+    },
+    "seat": {
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ]
+    },
+    "decision_id": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "engine_tick": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "action": {
+      "$ref": "action.v1.schema.json"
+    },
+    "observation": {
+      "$ref": "observation.v1.schema.json"
+    },
+    "next_observation": {
+      "$ref": "observation.v1.schema.json"
+    },
+    "observation_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "next_observation_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "match_outcome": {
+      "enum": [
+        "seat0_win",
+        "seat1_win",
+        "draw"
+      ]
+    }
+  }
+}
