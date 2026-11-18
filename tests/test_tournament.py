@@ -38,7 +38,7 @@ class SeatZeroWinnerEngine:
             "match_id": self.match_id,
             "decision_id": self.tick,
             "seat": seat,
-            "game": {"tick": self.tick},
+            "game": {"tick": self.tick, "entity_overflow": 0},
             "own": {"hand": []},
             "opponent": {},
             "entities": [],
