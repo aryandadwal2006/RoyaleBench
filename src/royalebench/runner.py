@@ -322,7 +322,25 @@ class MatchRunner:
             outcome = "void"
             fault = {"kind": "runner_error", "exception": type(exc).__name__, "message": str(exc)}
         finally:
-            for agent in agents:
+            for seat, agent in enumerate(agents):
+                finish = getattr(agent, "finish", None)
+                if callable(finish):
+                    finish_payload = {
+                        "match_id": match_id,
+                        "seed": int(seed),
+                        "profile": self.profile,
+                        "status": status,
+                        "outcome": outcome,
+                        "winner": winner,
+                        "won": None if winner is None else winner == seat,
+                        "crowns": [crowns[seat], crowns[1 - seat]],
+                        "tick": tick,
+                        "decisions": decision_count,
+                        "invalid_actions": illegal_counts[seat],
+                        "fault": fault,
+                    }
+                    with contextlib.suppress(Exception):
+                        finish(finish_payload)
                 with contextlib.suppress(Exception):
                     agent.close()
             with contextlib.suppress(Exception):
