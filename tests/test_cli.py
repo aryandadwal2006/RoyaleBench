@@ -88,3 +88,20 @@ def test_tournament_cli_rejects_non_array_external_command():
 def test_tournament_rejects_duplicate_agent_identifiers():
     with pytest.raises(ValueError, match="must be unique"):
         _agent_factories(["llm", "llm"])
+
+
+def test_forecast_eval_cli_parses_held_out_shard_and_horizons(tmp_path):
+    args = build_parser().parse_args(
+        [
+            "forecast-eval",
+            "--split",
+            str(tmp_path / "test.jsonl.gz"),
+            "--horizons",
+            "1,2,4",
+            "--output",
+            str(tmp_path / "forecast.json"),
+        ]
+    )
+    assert args.command == "forecast-eval"
+    assert args.horizons == "1,2,4"
+    assert args.output.endswith("forecast.json")
