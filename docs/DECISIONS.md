@@ -26,7 +26,7 @@ These are current design decisions for RoyaleBench v1. They can change only thro
 
 ## ADR-0003: Provide a common deterministic public-memory block
 
-**Status:** Accepted, implementation pending.
+**Status:** Accepted; implemented in ObservationV1 using CRForge's seat-side elixir accounting and a public-play card-cycle tracker.
 
 **Decision:** In the assisted structured track, RoyaleBench computes opponent-elixir accounting and card-cycle deductions from public observations/events and supplies the same memory state to every agent.
 
@@ -98,3 +98,15 @@ These are current design decisions for RoyaleBench v1. They can change only thro
 **Reasons:** RoyaleBench v1 is a two-player competitive benchmark. Glicko-2 explicitly tracks uncertainty and rating volatility; raw win percentage alone is unstable when submissions have different match counts.
 
 **Consequences:** Every leaderboard exposes rating deviation, match count, W/D/L and confidence intervals. A paired side-swap contributes both games to the rating-period result set. Publish the rating-period definition and exact implementation/version. Ratings remain separate by observation modality, latency mode, action-resolution version and deck stratum.
+
+## ADR-0010: Freeze tile-centre actions for RoyaleBench v1
+
+**Status:** Accepted for v1.
+
+**Decision:** RoyaleBench v1 uses the pinned CRForge 18 x 32 tile-centre action grid and `MASK_ALL_TILES=1`. An agent supplies a tap point at a tile centre; CRForge's native PlayerCommands placement search and 20-tick command delay remain authoritative. The adapter does not silently snap invalid coordinates or replace invalid actions.
+
+**Reasons:** This is the action contract exposed by the pinned CRForge environment and can be tested without modifying upstream action semantics. A higher-resolution action grid would require a separate, versioned adapter and differential placement tests.
+
+**Consequences:** The 36 x 64 half-tile proposal in ADR-0006 is not part of the v1 leaderboard. A future half-tile track must receive a distinct action-resolution identifier and its own compatibility tests. Never compare its ratings directly with tile-centre ratings.
+
+**Revisit when:** A pinned engine extension exposes a verified higher-resolution tap lattice while preserving native placement semantics and reproducible replay behaviour.
