@@ -175,10 +175,19 @@ def build_observation(
             }
         )
 
+    enemy_play_count = scalar("enemy_play_count")
+    if enemy_play_count < 0:
+        raise RuntimeError(f"CRForge reported a negative enemy play count: {enemy_play_count}")
+
+    # CRForge's enemy-play rows are newest-first (row 0 is the most recent play),
+    # whereas derive_opponent_cycle consumes a chronological, oldest-first ledger.
+    # Reverse only the actual rows: trailing unused rows must never enter the cycle.
+    visible_play_count = min(enemy_play_count, len(recent_plays))
+    cycle_ledger_oldest_first = list(reversed(recent_plays[:visible_play_count]))
     opponent_cycle = derive_opponent_cycle(
         deck,
-        recent_plays,
-        play_count=scalar("enemy_play_count"),
+        cycle_ledger_oldest_first,
+        play_count=enemy_play_count,
     )
 
     rows = schema.entities(raw_observation)
