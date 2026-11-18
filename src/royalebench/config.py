@@ -79,7 +79,9 @@ class V1Config:
     @classmethod
     def from_mapping(cls, raw: dict[str, Any]) -> V1Config:
         if raw.get("version", 1) != 1:
-            raise ValueError(f"unsupported RoyaleBench configuration version: {raw.get('version')!r}")
+            raise ValueError(
+                f"unsupported RoyaleBench configuration version: {raw.get('version')!r}"
+            )
         match = raw.get("match", {})
         profiles = raw.get("decision_profiles", {})
         engine = raw.get("engine", {})
