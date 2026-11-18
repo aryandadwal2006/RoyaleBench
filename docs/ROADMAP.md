@@ -139,6 +139,9 @@ A complete run must finish with:
 
 ### Observed partial Windows run (2026-11-18)
 
+The subsequent bootstrap-script fix was validated by a dedicated Windows GitHub Actions job: all three PowerShell scripts parsed, and the script cloned/verified the three pinned upstream submodules successfully. The user's local full engine build and headless tournament acceptance are still outstanding.
+
+
 The user's run used Python 3.14.5, Java 21.0.13 and `-SkipBuild`. The pinned CRForge `:env:test` task completed with Gradle `BUILD SUCCESSFUL`; RoyaleBench's Python suite reported 114 passed and 3 skipped; Ruff and `config-check` passed. The three skips were `tests/test_crforge_native.py`, because the CRForge install distribution was absent. The first tournament then stopped before any match because no JARs existed under `env/build/install/env/lib`. This is an incomplete build/acceptance run, not evidence of a match-runner or agent failure. The validation script now checks for the missing runtime distribution and reports the required build command before entering the Python integration tests.
 
 The user's desktop visualizer run establishes that the CRForge desktop runtime starts and supports manual play. It does not substitute for headless adapter acceptance.
