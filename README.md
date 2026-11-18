@@ -61,9 +61,38 @@ python -m royalebench tournament --agents random-legal-v1,llm --seeds 11,22
 
 The LLM adapter expects an OpenAI Chat Completions-compatible endpoint and JSON-object output. Configure a model identifier supported by your endpoint. Provider usage and client latency are recorded when returned by the endpoint.
 
+## External JSONL agents
+
+External policies can enter tournaments as isolated child processes. A worker receives a versioned `start` event, answers a `ready` handshake, receives one structured observation per `act` request, receives an `end` event with its own match result, and exits on `close`. Standard output is reserved for JSONL protocol messages; write diagnostics to standard error.
+
+A complete example worker is included:
+
+```powershell
+python -m royalebench tournament `
+  --agents random-legal-v1,external-hog `
+  --external-agent-name external-hog `
+  --external-agent-command '["python","examples/agents/hog_cycle_jsonl.py"]' `
+  --external-agent-cwd . `
+  --seeds 11,22,33 `
+  --output results/external-agent-tournament
+```
+
+For an agent that needs credentials, name only the intended variables in `--external-agent-pass-env`. The parent values are copied into the child explicitly; unrelated environment variables are not inherited:
+
+```powershell
+$env:MODEL_API_KEY = "..."
+python -m royalebench tournament `
+  --agents random-legal-v1,my-agent `
+  --external-agent-name my-agent `
+  --external-agent-command '["python","worker.py"]' `
+  --external-agent-pass-env MODEL_API_KEY
+```
+
+This process boundary limits accidental credential exposure and provides startup/decision timeouts, but it is not an OS security sandbox. Do not run untrusted participants under your personal account without an additional container or OS isolation layer.
+
 ## Repository status
 
-The engine adapter, ObservationV1 converter, action protocol, baseline agents, concurrent match runner, Glicko-2 ratings, paired tournament runner, LLM adapter and match-level trajectory exporter are implemented. External pretrained checkpoints are not included in the official baseline set until their observation/action adapters pass compatibility and reproducibility checks.
+The CRForge adapter, ObservationV1 converter, public-memory cycle tracker, action protocol, baseline agents, concurrent match runner, Glicko-2 ratings, paired tournament runner, OpenAI-compatible LLM adapter, JSONL subprocess adapter and match-level trajectory exporter are implemented. These components still require the final local acceptance run against your installed CRForge build. External pretrained checkpoints are not included in the official leaderboard until their observation/action adapters pass compatibility and reproducibility checks.
 
 See [docs/ROADMAP.md](docs/ROADMAP.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
