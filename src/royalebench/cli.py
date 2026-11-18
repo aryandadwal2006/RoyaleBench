@@ -68,6 +68,12 @@ def _agent_factories(
         raise ValueError(
             "--external-agent-name and --external-agent-command must be supplied together"
         )
+    if external_agent_command is not None and (
+        not isinstance(external_agent_command, list)
+        or not external_agent_command
+        or any(not isinstance(part, str) or not part for part in external_agent_command)
+    ):
+        raise ValueError("--external-agent-command must be a non-empty JSON array of strings")
     if external_agent_name is not None:
         if not external_agent_name.strip():
             raise ValueError("external agent name must be non-empty")
@@ -154,9 +160,16 @@ def _cmd_tournament(args: argparse.Namespace) -> int:
     config = _load(args)
     ticks = config.ticks_for_profile(args.profile)
     names = [name.strip() for name in args.agents.split(",")]
+    pass_env_names = [
+        key.strip()
+        for key in args.external_agent_pass_env.split(",")
+        if key.strip()
+    ]
+    if pass_env_names and args.external_agent_name is None:
+        raise ValueError("--external-agent-pass-env requires an external agent")
     external_env: dict[str, str] = {}
-    for key in args.external_agent_pass_env:
-        if not key or key not in os.environ:
+    for key in pass_env_names:
+        if key not in os.environ:
             raise ValueError(f"requested external-agent environment variable {key!r} is not set")
         external_env[key] = os.environ[key]
     factories = _agent_factories(
