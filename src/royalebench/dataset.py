@@ -25,7 +25,7 @@ class _GzipJsonlWriter:
     def __init__(self, path: Path) -> None:
         self.raw = path.open("wb")
         self.compressed = gzip.GzipFile(fileobj=self.raw, mode="wb", mtime=0)
-        self.text = io.TextIOWrapper(self.compressed, encoding="utf-8", newline="\\n")
+        self.text = io.TextIOWrapper(self.compressed, encoding="utf-8", newline="\n")
 
     def write(self, record: dict[str, Any]) -> None:
         self.text.write(json.dumps(record, sort_keys=True, separators=(",", ":")))
