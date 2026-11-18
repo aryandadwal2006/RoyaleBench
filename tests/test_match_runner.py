@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import gzip
 import json
+import time
 from types import SimpleNamespace
 
 from royalebench.agents.baselines import NoOpAgent
@@ -78,3 +79,74 @@ def test_runner_executes_both_seats_and_writes_trajectory(tmp_path):
         rows = [json.loads(line) for line in handle]
     assert len(rows) == 4
     assert all("next_observation" in row for row in rows)
+
+
+
+class MutatingAgent(NoOpAgent):
+    name = "mutating-agent"
+
+    def act(self, observation):
+        observation["own"]["hand"].append({"slot": 99, "card": "Injected"})
+        return {"schema": "royalebench.action.v1", "type": "wait"}
+
+
+class DelayedAgent(NoOpAgent):
+    name = "delayed-agent"
+
+    def act(self, observation):
+        time.sleep(0.02)
+        return super().act(observation)
+
+
+class InvalidAgent(NoOpAgent):
+    name = "invalid-agent"
+
+    def act(self, observation):
+        return {"schema": "royalebench.action.v1", "type": "unknown"}
+
+
+def test_runner_gives_agents_isolated_observation_copies(tmp_path):
+    engine = FakeEngine()
+    runner = MatchRunner(engine, profile="test", profile_ticks=5)
+    result = runner.run(
+        (MutatingAgent(), NoOpAgent()),
+        seed=12,
+        match_id="mutation-test",
+        output_dir=tmp_path,
+    )
+    assert result.status == "completed"
+    with gzip.open(tmp_path / "trajectory.jsonl.gz", "rt", encoding="utf-8") as handle:
+        rows = [json.loads(line) for line in handle]
+    seat_zero = next(row for row in rows if row["seat"] == 0)
+    assert seat_zero["observation"]["own"]["hand"] == []
+
+
+def test_runner_uses_one_shared_deadline_for_both_concurrent_agents(tmp_path):
+    engine = FakeEngine()
+    runner = MatchRunner(
+        engine,
+        profile="test",
+        profile_ticks=5,
+        request_timeout_s=0.05,
+    )
+    result = runner.run(
+        (DelayedAgent(), DelayedAgent()),
+        seed=12,
+        match_id="deadline-test",
+        output_dir=tmp_path,
+    )
+    assert result.status == "completed"
+
+
+def test_invalid_agent_action_is_classified_as_agent_error(tmp_path):
+    engine = FakeEngine()
+    runner = MatchRunner(engine, profile="test", profile_ticks=5)
+    result = runner.run(
+        (InvalidAgent(), NoOpAgent()),
+        seed=12,
+        match_id="invalid-test",
+        output_dir=tmp_path,
+    )
+    assert result.status == "agent_error"
+    assert result.outcome == "void"
+    assert result.fault["kind"] == "agent_error"
