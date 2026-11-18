@@ -21,7 +21,7 @@ V1 fixes both seats to the exact same ordered Hog 2.6 deck, card/tower level 11,
 
 ## Tracks and outputs
 
-- **Competitive structured-state track:** paused-clock agent decisions at the `fast-250ms-v1` (5 engine ticks) or `llm-api-1s-v1` (20 engine ticks) cadence. Ratings are kept separate by cadence.
+- **Competitive structured-state track:** paused-clock agent decisions at the `fast-250ms-v1` (5 engine ticks) or `llm-api-1s-v1` (20 engine ticks) simulation cadence. These are action/observation frequencies, not inference-time budgets. Ratings are kept separate by cadence.
 - **Forecasting evaluation:** action-conditioned future ObservationV1 prediction at multiple decision-interval horizons. The initial persistence baseline is a sanity reference, not a learned model.
 - **Trajectory data:** compressed train/validation/test JSONL shards, split by simulator seed group, with a dataset manifest and SHA-256 hashes.
 
