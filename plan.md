@@ -620,6 +620,54 @@ No acceptance, spotlight or award outcome can be guaranteed. A narrow one-deck l
 
 ---
 
+## 13.1 Minimum publishable package versus spotlight stretch
+
+The full Cartesian experiment matrix is not a requirement to execute every possible combination. Use the following hard priority split to protect the deadline.
+
+### Minimum package for a credible ICML main-track submission
+
+- Full local v1 native acceptance, with all three CRForge native adapter tests executed.
+- Three validated archetypes, mirror and cross-archetype matchups, both seats and seed-clustered analysis.
+- One transparent deck-aware heuristic and one learned PPO policy in addition to the existing rules/random baselines.
+- At least one serious frozen LLM participant; two model families are strongly preferred when budget permits.
+- Deterministic replay-prefix reconstruction and the candidate-set regret diagnostic on a stratified state set.
+- One controlled public-memory ablation.
+- Pilot-derived final sample size and paired score-difference intervals.
+- One reproducible command/script for the principal paper tables.
+
+A submission missing deterministic simulator validation, genuine cross-matchup evaluation or meaningful uncertainty is not rescued by adding more model names or a larger repository.
+
+### Spotlight / award stretch
+
+- Four verified archetypes rather than three.
+- Two independently trained learned policies (for example, different training distributions or recurrent versus feed-forward policy).
+- Three or more frozen LLM families with full cost/latency accounting.
+- Independent expert review of a tactical-state subset with inter-rater agreement.
+- Stability analysis of candidate-set regret under multiple continuation policies and opponents.
+- A clear, statistically robust finding about ranking reversals, hidden specialization or the gap between match outcome and tactical decision quality.
+- A polished public benchmark package, reproducibility script and external users reproducing a subset before submission.
+
+### What to cut first if the schedule slips
+
+Cut, in this order:
+1. fourth deck archetype;
+2. optional trained forecaster;
+3. third and subsequent hosted LLM models;
+4. human full-match baseline (retain a small expert-reviewed diagnostic subset only if feasible);
+5. secondary cadence or corruption ablations not tied to a primary hypothesis.
+
+Do **not** cut:
+- full native engine acceptance;
+- the third archetype without an explicit reason and a correspondingly narrower claim;
+- paired seat swaps and seed-cluster uncertainty;
+- at least one real learned policy;
+- deterministic replay validation for the counterfactual metric;
+- the final held-out test separation.
+
+If the counterfactual evaluator cannot be validated, the paper must change its central claim and become a narrower benchmark paper. It must not retain the counterfactual title or claims based only on approximate replay.
+
+---
+
 ## 14. Explicitly out of scope before ICML submission
 
 Do not spend the remaining schedule on:
