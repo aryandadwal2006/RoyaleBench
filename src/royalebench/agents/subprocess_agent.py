@@ -248,16 +248,36 @@ class JsonlSubprocessAgent:
                 process.kill()
                 process.wait()
 
+    def abort_pending(self) -> None:
+        """Immediately terminate a child with an outstanding or untrusted request."""
+        self._stop_process()
+
     def close(self) -> None:
-        """Ask the child to exit, then terminate it if it ignores the close message."""
+        """Ask the child to exit, allowing a grace period before terminating it."""
         process = self._process
         if process is None:
+            self._match_info = {}
+            self.last_telemetry = None
             return
+
         if process.poll() is None and process.stdin is not None:
             try:
                 self._send({"type": "close"})
-            except AgentProcessError:
+                process.stdin.close()
+            except (AgentProcessError, OSError):
                 pass
-        self._stop_process()
+
+        try:
+            process.wait(timeout=self.shutdown_timeout_s)
+        except subprocess.TimeoutExpired:
+            self._stop_process()
+        else:
+            self._process = None
+            if process.stdout is not None:
+                try:
+                    process.stdout.close()
+                except OSError:
+                    pass
+
         self._match_info = {}
         self.last_telemetry = None
