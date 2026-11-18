@@ -309,6 +309,83 @@ Keep the information budget matched. Do not give one condition a longer transcri
 
 ---
 
+## 7.1 Competency-focused diagnostic suite
+
+The diagnostic layer should become a structured suite of controlled scenarios rather than one scalar score. RTSGameBench already demonstrates the value of full-game matchups plus competency-focused mini-games and scenario generation; RoyaleBench must differentiate through its competitive 1v1 setting, identical-state modality comparisons, explicit FAIR information boundary, paired seat/control design and simulator-grounded counterfactuals. Do not claim that competency mini-games themselves are new. See https://arxiv.org/abs/2606.18950.
+
+Each scenario must be generated from a valid engine state or a replay prefix, serialized with a manifest, and validated by reconstructing the exact initial observation hash. Scenario construction may inspect simulator truth to label and stratify examples, but the agent input must contain only the information allowed by its track.
+
+| Competency | Scenario construction | Primary measurement | Main failure mode exposed |
+|---|---|---|---|
+| Resource management | Freeze states at different own/opponent elixir levels, hand compositions and incoming threats; include constrained response choices | Candidate-set regret, elixir spent/wasted, defensive survival and opportunity cost | Overcommitment, inefficient cycling, poor trade decisions |
+| Opponent modelling | Replay prefixes with different hidden cycles that induce distinguishable public play histories; request a distribution over possible opponent hand/cycle states | Brier score, log loss, calibration, top-k accuracy on identifiable targets; downstream action-regret difference | Treating uncertain opponent information as known; poor inference from partial histories |
+| Spatial reasoning | Create states with multiple legal defensive/offensive placements and controlled threat trajectories | Placement regret under matched continuations, landing-point error where applicable, tower/unit damage avoided or achieved | Correct card but wrong location, range or lane |
+| Temporal planning | Construct situations with known projectile/unit travel, command delay, observation cadence and time-to-impact | Timing regret, response delay, prevented damage and survival under controlled continuations | Acting too early/late, ignoring delayed actions or threats |
+| Adaptation | Switch the opponent controller at a hidden, predeclared match point between distinct policy families | Adaptation lag, post-switch paired score, recovery curve and action-value change | Static policy, delayed strategy recognition, overfitting |
+| Long-horizon planning | Evaluate sequences where immediate elixir/tower trades affect later states; sample multiple horizons from replayed states | Horizon-dependent candidate-set regret, terminal score and value consistency | Greedy local plays, failure to preserve future options |
+
+Do not force all six diagnostics into a single aggregate benchmark score. Publish the per-competency vector, confidence intervals and the exact scenario support. If a scalar summary is useful, report it only as a secondary normalized composite with its weighting fixed in advance.
+
+### Scenario-generation requirements
+
+- Sample states across game phase, elixir, hand composition, tower-health asymmetry, entity density, deck matchup and opponent archetype.
+- Balance easy, medium and difficult states using engine-grounded properties, not the target models' observed performance.
+- Separate development scenarios, validation scenarios and a held-out diagnostic test set by source match and seed cluster.
+- Include paired seat-frame transforms where the scenario should be symmetric.
+- Require deterministic replay reconstruction and store initial-observation hashes.
+- Retain hard, ambiguous and no-good-action cases; do not curate only visually obvious tactical problems.
+- Make scenario generation deterministic from a published seed and configuration.
+
+## 7.2 Visual and structured-state paired track
+
+Promote a visual observation track from a distant future idea into a major research work package. It is a strong differentiator for an agent-evaluation paper, but it must be a genuinely controlled comparison rather than simply running a VLM on unrelated matches.
+
+### Core question
+
+How much performance is lost when the same agent family must infer the game state from rendered observations rather than receiving a structured FAIR state? Can the loss be attributed to perception, temporal state estimation, action grounding or strategic reasoning?
+
+### Track design
+
+1. **Structured FAIR track:** the current ObservationV1 input.
+2. **Visual single-frame track:** one deterministic screenshot per decision, from the acting seat's perspective.
+3. **Visual temporal track:** a fixed, documented number of previous frames at fixed simulation intervals, with no privileged event history.
+4. **Optional hybrid track:** screenshot plus a small common public-memory summary. This is a separate track because it supplies derived state beyond pixels.
+
+Use at least one multimodal model family capable of accepting both text-only structured observations and images. Evaluate that same model/version on matched states in structured and visual modes to isolate modality effects as much as practical. Then evaluate additional VLM families in the visual track. Match the action schema, candidate choices, opponent, seed, seat, decision cadence and output validation. For full games, use paired seeds and seat swaps; for tactical diagnostics, use the exact same reconstructed state for both modalities.
+
+### Renderer and visual information contract
+
+- Build or adapt a deterministic renderer whose board frame, card slots, elixir, towers, timer, effects and visible entities are stable across runs.
+- The rendered image must encode only information available to that player. It must not reveal hidden hand, hidden elixir, future state, RNG state, hidden entity HP or the other seat's observation.
+- Prefer original, redistributable visual assets. Do not place Supercell artwork, sounds, logos or proprietary game tables in the public artifact unless a licence explicitly permits redistribution. A neutral custom renderer is acceptable if this limitation is documented.
+- Version the renderer, resolution, frame rate, camera transform, HUD, fonts, animation sampling and screenshot encoding. Hash renderer configuration and generated frames.
+- Establish deterministic mapping from the agent's output coordinates to the common ActionV1 grid. Do not let a visual agent use a larger or strategically filtered action set.
+- Define whether a visual model receives one image, a frame stack or video. Fix this across comparisons and record image dimensions, temporal spacing and token/frame budget.
+
+### Decomposing visual-agent errors
+
+Use engine truth only as an evaluator-side label to decompose failure:
+
+- **Perception:** card identity, entity detection/count, entity position, tower health, elixir and timer estimation. Report precision/recall/F1 or MAE as appropriate.
+- **Temporal estimation:** tracking stable entity identities, motion/velocity and event timing across frames. Report association accuracy and position/velocity error.
+- **Action grounding:** difference between intended screen/board location and the encoded ActionV1 hand slot/tile coordinate, invalid-action rate and placement rejection.
+- **Strategic choice:** candidate-set regret conditioned on the same true state and candidate set.
+- **End-to-end outcome:** cross-play score and matchup-conditioned ranking.
+
+The key analysis is not simply visual-versus-structured win rate. It is whether errors in perception and temporal state estimation explain the gap in action quality and match performance. Use state-matched paired analyses and report when a visual agent's strategic choice is good given its estimated state but the estimate itself is wrong.
+
+### Visual-track exit gate
+
+- Renderer determinism and visibility audit pass.
+- Same underlying states are available to visual and structured evaluators.
+- At least two VLMs can complete the protocol, or the paper explicitly labels a smaller pilot.
+- One model family is evaluated in both modalities with matched prompt/action settings.
+- Perception, action-grounding, tactical-regret and competitive metrics are all available.
+- Asset provenance and redistribution permissions are documented.
+
+Do not let the visual renderer delay the frozen v1 acceptance. It is a research-layer component and must be versioned independently.
+---
+
 ## 8. Competitive protocol and statistical analysis
 
 ### Match schedule
