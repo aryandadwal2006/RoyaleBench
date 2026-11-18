@@ -61,6 +61,16 @@ python -m royalebench tournament --agents random-legal-v1,llm --seeds 11,22
 
 The LLM adapter expects an OpenAI Chat Completions-compatible endpoint and JSON-object output. Configure a model identifier supported by your endpoint. Provider usage and client latency are recorded when returned by the endpoint.
 
+## World-model forecasting baseline
+
+The trajectory exporter creates match-level train/validation/test shards. A persistence baseline can be evaluated on the held-out test shard at multiple decision-interval horizons:
+
+```powershell
+python -m royalebench forecast-eval --split results/dataset/test.jsonl.gz --horizons 1,2,4 --output results/forecast-persistence.json
+```
+
+The evaluator verifies the dataset manifest and transition observation hashes. Forecast inputs contain the starting observation and intervening actions only. Match outcomes and future observations are withheld from the predictor. The persistence baseline is a sanity reference, not a learned world model; its report is separate from competitive ratings.
+
 ## External JSONL agents
 
 External policies can enter tournaments as isolated child processes. A worker receives a versioned `start` event, answers a `ready` handshake, receives one structured observation per `act` request, receives an `end` event with its own match result, and exits on `close`. Standard output is reserved for JSONL protocol messages; write diagnostics to standard error.
