@@ -2,7 +2,7 @@
 
 **Contract:** ObservationV1  
 **Canonical source:** CRForge `VectorEnv` seat observation at commit `fa5959055c590a493d62c8dbc804e602832d08a6`  
-**Status:** Converter-level and native-engine audit tests are implemented and wired into final validation; none of the new native tests has yet been executed locally.
+**Status:** Converter-level tests pass in CI. The pinned upstream CRForge `:env:test` task completed successfully on Windows on 2026-11-18, but the three RoyaleBench native adapter tests in `tests/test_crforge_native.py` were skipped because the CRForge `installDist` JARs were absent. Final native adapter acceptance is pending.
 
 ## Trust boundary
 
@@ -53,11 +53,11 @@ Additional native tests are now present:
 
 The acceptance script now runs the pinned CRForge `:env:test` suite before the RoyaleBench Python suite. That upstream suite includes checks for per-seat coordinate transforms and entity visibility, tunnelling trails, hidden spell aim, unrevealed building commands, and enemy-elixir accounting across ordinary spends, visible gains, champion refunds and terminal ticks. In particular, it contains `SeatObservationTest.everyRowReadsTheCoreAndTheTwoSeatsSeeItHalfATurnApart`, `SeatObservationTest.anEnemyTunnellerShowsItsTrailFromTheRunAndItsCardAndPointOnlyWhereItComesUp`, `SeatObservationTest.anEnemySpellFromTheKingShowsItsCardAtTheRunAndItsPointWhereItLands`, `SeatObservationTest.anEnemysHiddenBuildingShowsNothingOfItsCommandAndStaysOnTheScreenLowered`, and the relevant cases in `EnemyElixirCountTest`.
 
-These tests are implemented and included in the final validation path, but have not been run in this working session. A passed result is not yet established.
+The user ran the pinned CRForge `:env:test` task on Windows on 2026-11-18 and Gradle reported `BUILD SUCCESSFUL`. In the same partial run, the three RoyaleBench tests listed above were skipped because `env/build/install/env/lib` contained no runtime JARs; the run used `-SkipBuild`, which bypassed `:env:installDist`. Thus the upstream native suite completed, but the three native adapter assertions have not yet executed.
 
 ## Remaining native acceptance checks
 
-1. Execute `.\scripts\validate_v1.ps1` once against the pinned Windows build; reconcile any failures rather than weakening the gates.
-2. Add a direct native-state mutation test for hidden hand/queue/elixir while preserving the seat-visible state, if the engine exposes a safe and isolated fixture for such mutation.
+1. Run ` .\scripts\validate_v1.ps1` without `-SkipBuild` so `:env:installDist` creates the runtime JARs, then verify all three RoyaleBench native tests execute without skips and the headless tournaments complete.
+2. Add a direct native-state mutation test for hidden hand/queue/elixir while preserving the seat-visible state only if the engine exposes a safe and isolated fixture; treat this as additional audit hardening.
 
 Do not mark the native FAIR audit complete until the native and RoyaleBench integration tests pass on the pinned data version.
