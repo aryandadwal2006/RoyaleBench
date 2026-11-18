@@ -57,7 +57,7 @@ The user ran the pinned CRForge `:env:test` task on Windows on 2026-11-18 and Gr
 
 ## Remaining native acceptance checks
 
-1. Run ` .\scripts\validate_v1.ps1` without `-SkipBuild` so `:env:installDist` creates the runtime JARs, then verify all three RoyaleBench native tests execute without skips and the headless tournaments complete.
+1. Run `.\scripts\validate_v1.ps1` without `-SkipBuild` so `:env:installDist` creates the runtime JARs, then verify all three RoyaleBench native tests execute without skips and the headless tournaments complete.
 2. Add a direct native-state mutation test for hidden hand/queue/elixir while preserving the seat-visible state only if the engine exposes a safe and isolated fixture; treat this as additional audit hardening.
 
 Do not mark the native FAIR audit complete until the native and RoyaleBench integration tests pass on the pinned data version.
