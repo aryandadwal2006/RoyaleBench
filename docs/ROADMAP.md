@@ -149,7 +149,7 @@ The detailed ICML 2027 research and implementation plan is maintained at the rep
 
 ### Successful local Windows acceptance (2026-11-18)
 
-The user completed `.\\scripts\\validate_v1.ps1 -SkipBuild` on Windows using Python 3.14.5 and Java 21.0.13. The consolidated report is in the local run directory `results/validation-20261118-171426/validation_report.json`.
+The user completed `.\scripts\validate_v1.ps1 -SkipBuild` on Windows using Python 3.14.5 and Java 21.0.13. The consolidated report is in the local run directory `results/validation-20261118-171426/validation_report.json`.
 
 - Pinned CRForge `:env:test`: `BUILD SUCCESSFUL`; six runtime JARs and game-data tables were present.
 - Python: **120 passed**; all 3 native CRForge adapter tests executed, 0 skipped.
@@ -162,6 +162,7 @@ The user completed `.\\scripts\\validate_v1.ps1 -SkipBuild` on Windows using Pyt
 
 The default tournaments are only a three-seed smoke test. Random-legal won 5/6 against the in-process Hog-cycle agent and 6/6 against the external Hog worker. This surprising ordering warrants a baseline-behavior/parity audit before any agent-strength interpretation. It does not invalidate the integration acceptance, whose purpose is to verify that matches and outputs complete.
 
+## Paper drafting readiness
 
 The non-empirical paper sections can be drafted now: motivation, related work, benchmark design, observation/action contracts, simulator integration, tournament protocol, dataset construction and limitations. The complete local acceptance run is done; keep results claims provisional until a larger, frozen research evaluation has finished.
 
