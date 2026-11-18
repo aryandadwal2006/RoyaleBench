@@ -40,7 +40,7 @@ foreach ($SubmodulePath in $Submodules) {
     $ActualSha = [string]($RevisionOutput | Select-Object -Last 1)
     $ActualSha = $ActualSha.Trim().ToLowerInvariant()
     if ($ActualSha -notmatch '^[0-9a-f]{40}$') {
-        throw "Invalid revision returned for $SubmodulePath: '$ActualSha' (length $($ActualSha.Length))"
+        throw "Invalid revision returned for ${SubmodulePath}: '$ActualSha' (length $($ActualSha.Length))"
     }
 
     if (-not [string]::Equals($ActualSha, $ExpectedSha, [System.StringComparison]::Ordinal)) {
