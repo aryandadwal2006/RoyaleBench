@@ -4,13 +4,13 @@
   "title": "RoyaleBench ForecastRequestV1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema", "request_id", "observation_hash", "horizon_ticks", "observation", "action"],
+  "required": ["schema", "request_id", "observation_hash", "horizon_ticks", "observation", "actions"],
   "properties": {
     "schema": {"const": "royalebench.forecast-request.v1"},
     "request_id": {"type": "string", "minLength": 1},
     "observation_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "horizon_ticks": {"type": "integer", "minimum": 1},
     "observation": {"$ref": "urn:royalebench:observation:v1"},
-    "action": {"$ref": "urn:royalebench:action:v1"}
+    "actions": {"type": "array", "minItems": 1, "items": {"$ref": "urn:royalebench:action:v1"}}
   }
 }
