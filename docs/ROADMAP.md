@@ -7,7 +7,7 @@ This roadmap distinguishes code that exists from evidence that it has been valid
 ## Frozen v1 scope
 
 - One canonical engine: CRForge commit `fa5959055c590a493d62c8dbc804e602832d08a6`.
-- Game-data version: `16.635.8`, with its local content SHA recorded in match manifests.
+- Game-data version: `16.635.8`, content SHA `062a11e0500c03cc041f123413b1ef1846b539a4`, verified at engine startup and recorded in match manifests.
 - Fixed mirrored Hog 2.6 deck, card/tower level 11.
 - CRForge 18 x 32 tile-centre action grid, `MASK_ALL_TILES=1`, native PlayerCommands placement.
 - FAIR structured observation only; opponent hand/queue/elixir are not read from privileged engine state.
@@ -24,12 +24,14 @@ Visual agents, real-time wall-clock competition, deck construction, alternate-en
 
 - [x] Pin CRForge, RoyaleGym and RoyaleSim upstream revisions as submodules.
 - [x] Add Windows bootstrap and CRForge environment-build scripts.
-- [x] Freeze the mirrored Hog 2.6 v1 configuration and both decision profiles.
+- [x] Freeze the exact mirrored Hog 2.6 deck and ordering, CRForge source commit, game-data content SHA, levels, tick limit, mask/action semantics and both decision profiles.
 - [x] Implement the Python adapter around CRForge `VectorBattle`.
+- [x] Verify the actual CRForge source checkout commit and exact game-data content SHA at initialization.
 - [x] Validate engine data version, 18 x 32 action grid, and `MASK_ALL_TILES` at initialization.
 - [x] Validate effective CRForge cadence, card/tower levels, tick limit, mask and entity-ID versions, and native 20-tick command delay against v1 at startup.
 - [x] Validate the actual reset deck, card levels, symmetric tower HP and initial public-elixir values for both seats.
 - [x] Resolve configured deck labels to exact upstream vocabulary rows.
+- [x] Add regression tests for source-commit verification, data-version/content-SHA checks and runtime/reset configuration gates.
 - [ ] Run the headless adapter on the user's local Windows installation.
 - [ ] Record the local build's exact upstream test failures and decide which affect v1.
 
