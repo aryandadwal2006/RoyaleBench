@@ -16,7 +16,8 @@ class FakeSchema:
     enemy_play_rows = 8
     entity = {}
     kinds = {"character": 1}
-    flags = {"alive": 1, "card_shown": 1}
+    flags = {"alive": 1}
+    play_flags = {"card_shown": 1, "point_shown": 2}
     state_names = []
     scales = {"elixir_scale": 10_000}
 
