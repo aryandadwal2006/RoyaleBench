@@ -32,8 +32,103 @@ $JavaVersion = $JavaOutput | Select-Object -First 1
 if ($JavaExitCode -ne 0 -or $JavaVersion -notmatch '"21\.') {
     throw "Java 21 is required. Detected: $JavaVersion"
 }
+
+# JPype needs the JVM shared library, not only java.exe. Resolve the JDK
+# corresponding to Java 21 on PATH and expose it to all child Python processes.
+$JavaHomeCandidates = New-Object System.Collections.ArrayList
+$JavaApplications = @(Get-Command java.exe -CommandType Application -All -ErrorAction SilentlyContinue)
+foreach ($JavaApplication in $JavaApplications) {
+    $JavaPaths = @()
+    foreach ($PropertyName in @("Path", "Source")) {
+        $Property = $JavaApplication.PSObject.Properties[$PropertyName]
+        if ($null -ne $Property -and -not [string]::IsNullOrWhiteSpace([string]$Property.Value)) {
+            $JavaPaths += [string]$Property.Value
+        }
+    }
+
+    foreach ($JavaPath in $JavaPaths) {
+        $ResolvedJavaPaths = @($JavaPath)
+        try {
+            $JavaFile = Get-Item -LiteralPath $JavaPath -ErrorAction Stop
+            $TargetProperty = $JavaFile.PSObject.Properties["Target"]
+            if ($null -ne $TargetProperty) {
+                foreach ($TargetPath in @($TargetProperty.Value)) {
+                    if ([string]::IsNullOrWhiteSpace([string]$TargetPath)) { continue }
+                    if (-not [System.IO.Path]::IsPathRooted([string]$TargetPath)) {
+                        $TargetPath = Join-Path (Split-Path -Parent $JavaPath) ([string]$TargetPath)
+                    }
+                    $ResolvedJavaPaths += [System.IO.Path]::GetFullPath([string]$TargetPath)
+                }
+            }
+        }
+        catch {
+            # The original PATH entry is still checked below.
+        }
+
+        foreach ($ResolvedJavaPath in $ResolvedJavaPaths) {
+            if (-not (Test-Path -LiteralPath $ResolvedJavaPath -PathType Leaf)) { continue }
+            $CandidateHome = Split-Path -Parent (Split-Path -Parent $ResolvedJavaPath)
+            if (-not [string]::IsNullOrWhiteSpace($CandidateHome)) {
+                $CandidateHome = [System.IO.Path]::GetFullPath($CandidateHome).TrimEnd("\")
+                if (-not $JavaHomeCandidates.Contains($CandidateHome)) {
+                    [void]$JavaHomeCandidates.Add($CandidateHome)
+                }
+            }
+        }
+    }
+}
+
+# Keep JAVA_HOME as a fallback for installations where java.exe is exposed
+# through a launcher that does not reveal its target path.
+if (-not [string]::IsNullOrWhiteSpace($env:JAVA_HOME)) {
+    $ConfiguredJavaHome = $env:JAVA_HOME.Trim().Trim('"')
+    if (Test-Path -LiteralPath $ConfiguredJavaHome -PathType Container) {
+        $ConfiguredJavaHome = [System.IO.Path]::GetFullPath($ConfiguredJavaHome).TrimEnd("\")
+        if (-not $JavaHomeCandidates.Contains($ConfiguredJavaHome)) {
+            [void]$JavaHomeCandidates.Add($ConfiguredJavaHome)
+        }
+    }
+}
+
+$JavaHome = $null
+$JvmDllCandidate = $null
+foreach ($CandidateHome in $JavaHomeCandidates) {
+    $CandidateJvmDlls = @(
+        (Join-Path $CandidateHome "bin\server\jvm.dll"),
+        (Join-Path $CandidateHome "jre\bin\server\jvm.dll"),
+        (Join-Path $CandidateHome "bin\client\jvm.dll")
+    )
+    $CandidateJvmDll = $CandidateJvmDlls |
+        Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } |
+        Select-Object -First 1
+    if ([string]::IsNullOrWhiteSpace([string]$CandidateJvmDll)) { continue }
+
+    $CandidateJavaExe = Join-Path $CandidateHome "bin\java.exe"
+    if (-not (Test-Path -LiteralPath $CandidateJavaExe -PathType Leaf)) { continue }
+    $CandidateJavaOutput = & cmd.exe /d /c ('"' + $CandidateJavaExe + '" -version 2>&1')
+    $CandidateJavaExitCode = $LASTEXITCODE
+    $CandidateJavaVersion = [string]($CandidateJavaOutput | Select-Object -First 1)
+    if ($CandidateJavaExitCode -ne 0 -or $CandidateJavaVersion -notmatch '"21\.') { continue }
+
+    $JavaHome = $CandidateHome
+    $JvmDllCandidate = [string]$CandidateJvmDll
+    break
+}
+
+if ([string]::IsNullOrWhiteSpace($JavaHome)) {
+    throw @"
+Java 21 is available, but its JDK home and jvm.dll could not be resolved.
+JPype requires the JVM shared library. Set JAVA_HOME to the root of your
+Java 21 JDK (the directory containing bin\java.exe and bin\server\jvm.dll),
+then rerun this script.
+"@
+}
+$env:JAVA_HOME = $JavaHome
+
 Write-Host "Python: $PythonVersion"
 Write-Host "Java: $JavaVersion"
+Write-Host "JAVA_HOME: $env:JAVA_HOME"
+Write-Host "JVM library: $JvmDllCandidate"
 
 $CrforgeRoot = Join-Path $Root "third_party\upstream\crforge"
 $CrforgeGradle = Join-Path $CrforgeRoot "gradlew.bat"
@@ -63,6 +158,18 @@ if ($ActualCrforgeCommit.Trim() -ne $ExpectedCrforgeCommit) {
 
 & $Python -m pip install -e (Join-Path $Root "third_party\upstream\crforge\python")
 if ($LASTEXITCODE -ne 0) { throw "Could not install the pinned crforge-env package." }
+
+# Verify JPype can resolve the exact JVM before the native adapter tests start.
+$JvmPathOutput = & $Python -c "import jpype; print(jpype.getDefaultJVMPath())"
+$JvmPathExitCode = $LASTEXITCODE
+if ($JvmPathExitCode -ne 0) {
+    throw "JPype could not locate or load the JVM shared-library path. JAVA_HOME=$env:JAVA_HOME"
+}
+$ResolvedJvmPath = [string]($JvmPathOutput | Select-Object -Last 1)
+if (-not (Test-Path -LiteralPath $ResolvedJvmPath -PathType Leaf)) {
+    throw "JPype returned a JVM path that does not exist: $ResolvedJvmPath"
+}
+Write-Host "JPype JVM preflight: $ResolvedJvmPath"
 
 Write-Host "=== Pinned CRForge native environment tests ==="
 Push-Location $CrforgeRoot
@@ -179,6 +286,8 @@ $Report = [ordered]@{
     completed_at = (Get-Date).ToString("o")
     python = $PythonVersion
     java = $JavaVersion
+    java_home = $env:JAVA_HOME
+    jvm_library = $ResolvedJvmPath
     crforge_commit = $ActualCrforgeCommit.Trim()
     game_data_version = "16.635.8"
     game_data_content_sha = "062a11e0500c03cc041f123413b1ef1846b539a4"
