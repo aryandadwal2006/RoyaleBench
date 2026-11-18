@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import gzip
+import hashlib
 import json
 
 import pytest
 
 from royalebench.forecasting import PersistenceForecaster, evaluate_forecaster, write_forecast_report
+from royalebench.observations import observation_hash
 
 
 def _observation(tick: int, *, hp: int = 100, elixir: float = 5.0) -> dict:
@@ -48,9 +50,19 @@ def _write_split(path, length=5):
                 "action": {"schema": "royalebench.action.v1", "type": "wait"},
                 "observation": observation,
                 "next_observation": next_observation,
+                "observation_hash": observation_hash(observation),
+                "next_observation_hash": observation_hash(next_observation),
                 "match_outcome": "seat0_win",
             }
             handle.write(json.dumps(record) + "\n")
+    digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    manifest = {
+        "dataset_version": 1,
+        "splits": {"test": {"path": path.name, "sha256": digest}},
+    }
+    (path.parent / "dataset_manifest.json").write_text(
+        json.dumps(manifest), encoding="utf-8"
+    )
 
 
 def test_persistence_forecaster_scores_perfectly_on_static_trajectory(tmp_path):
@@ -106,3 +118,26 @@ def test_forecast_report_refuses_to_overwrite(tmp_path):
     destination.write_text("existing", encoding="utf-8")
     with pytest.raises(FileExistsError):
         write_forecast_report({"schema": "test"}, destination)
+
+def test_forecast_evaluator_rejects_corrupted_observation_hash(tmp_path):
+    split = tmp_path / "test.jsonl.gz"
+    _write_split(split)
+    with gzip.open(split, "rt", encoding="utf-8") as handle:
+        records = [json.loads(line) for line in handle]
+    records[0]["observation_hash"] = "0" * 64
+    with gzip.open(split, "wt", encoding="utf-8") as handle:
+        for record in records:
+            handle.write(json.dumps(record) + "\n")
+    manifest = json.loads((tmp_path / "dataset_manifest.json").read_text())
+    manifest["splits"]["test"]["sha256"] = hashlib.sha256(split.read_bytes()).hexdigest()
+    (tmp_path / "dataset_manifest.json").write_text(json.dumps(manifest))
+    with pytest.raises(ValueError, match="observation hash mismatch"):
+        evaluate_forecaster(split, PersistenceForecaster(), horizons=(1,))
+
+
+def test_forecast_evaluator_rejects_modified_dataset_shard(tmp_path):
+    split = tmp_path / "test.jsonl.gz"
+    _write_split(split)
+    split.write_bytes(split.read_bytes() + b"tampered")
+    with pytest.raises(ValueError, match="SHA-256 mismatch"):
+        evaluate_forecaster(split, PersistenceForecaster(), horizons=(1,))
