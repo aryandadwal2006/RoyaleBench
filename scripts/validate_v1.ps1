@@ -32,6 +32,12 @@ if ($LASTEXITCODE -ne 0 -or $JavaVersion -notmatch '"21\.') {
 Write-Host "Python: $PythonVersion"
 Write-Host "Java: $JavaVersion"
 
+$CrforgeRoot = Join-Path $Root "third_party\upstream\crforge"
+$CrforgeGradle = Join-Path $CrforgeRoot "gradlew.bat"
+if (-not (Test-Path $CrforgeGradle)) {
+    throw "Pinned CRForge submodule is missing at $CrforgeRoot"
+}
+
 if (-not $SkipBuild) {
     & (Join-Path $PSScriptRoot "bootstrap_upstreams.ps1")
     if ($LASTEXITCODE -ne 0) { throw "Upstream bootstrap failed." }
@@ -45,6 +51,18 @@ else {
 
 & $Python -m pip install -e (Join-Path $Root "third_party\upstream\crforge\python")
 if ($LASTEXITCODE -ne 0) { throw "Could not install the pinned crforge-env package." }
+
+Write-Host "=== Pinned CRForge native environment tests ==="
+Push-Location $CrforgeRoot
+try {
+    & .\gradlew.bat :env:test "-Pcrforge.assetSource=cdn" --no-daemon
+    if ($LASTEXITCODE -ne 0) {
+        throw "Pinned CRForge native environment tests failed."
+    }
+}
+finally {
+    Pop-Location
+}
 
 Write-Host "=== Python tests ==="
 & $Python -m pytest
@@ -88,6 +106,8 @@ $Report = [ordered]@{
     python = $PythonVersion
     java = $JavaVersion
     profile = $Profile
+    native_engine_tests = "passed"
+    native_engine_test_report = (Join-Path $CrforgeRoot "env\build\reports\tests\test\index.html")
     tournament = @{
         total_matches = $TournamentJson.total_matches
         completed_matches = $TournamentJson.completed_matches
