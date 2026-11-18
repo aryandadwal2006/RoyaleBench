@@ -298,6 +298,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     external_command.add_argument(
         "--external-agent-command-file",
+        dest="external_agent_command",
         type=_parse_external_command_file,
         default=None,
         help="path to a UTF-8 JSON file containing the external worker argv array",
