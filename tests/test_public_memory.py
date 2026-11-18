@@ -20,8 +20,8 @@ def test_cycle_is_uncertain_before_four_public_card_plays():
     assert cycle["queue_complete"] is False
 
 
-def test_four_recent_distinct_plays_in_oldest_first_order_identify_hand_set():
-    history = rows("TheLog", "Skeletons", "Musketeer", "IceSpirit")
+def test_four_recent_distinct_plays_in_newest_first_order_identify_hand_set():
+    history = rows("IceSpirit", "Musketeer", "Skeletons", "TheLog")
     cycle = derive_opponent_cycle(DECK, history, play_count=4)
     assert cycle["hand_exact"] is True
     assert set(cycle["hand_cards"]) == {"Cannon", "Fireball", "HogRider", "IceGolem"}
