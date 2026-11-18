@@ -417,7 +417,7 @@ Consequences:
 - A fast RL agent cannot play several times while its opponent is thinking.
 - Both agents get the same number of decision opportunities.
 - Response latency is still measured and reported.
-- The strategic rating measures decision quality under a generous operational watchdog, not real-time responsiveness.
+- The strategic rating measures decision quality under a generous operational watchdog, not real-time responsiveness. The 5-tick and 20-tick settings control simulation progression between decisions; they do not grant different wall-clock reasoning budgets because the simulation is paused during inference.
 
 ### 10.2 Real-time mode: wall-clock 1× simulation
 
