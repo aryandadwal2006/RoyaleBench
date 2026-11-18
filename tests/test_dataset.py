@@ -43,8 +43,9 @@ def test_dataset_splits_complete_matches_without_leakage(tmp_path):
         write_match(matches, f"match-{index}", index)
 
     output = tmp_path / "dataset"
+    repeat_output = tmp_path / "dataset-repeat"
     first = build_dataset(matches, output, split_seed=12)
-    second = build_dataset(matches, output, split_seed=12)
+    second = build_dataset(matches, repeat_output, split_seed=12)
 
     groups = [set(row["seed_groups"]) for row in first["splits"].values()]
     assert not (groups[0] & groups[1])
@@ -54,6 +55,10 @@ def test_dataset_splits_complete_matches_without_leakage(tmp_path):
     assert all(row["transition_count"] == row["match_count"] for row in first["splits"].values())
     assert first["splits"] == second["splits"]
     assert (output / "dataset_manifest.json").exists()
+    for split in ("train", "validation", "test"):
+        first_bytes = (output / f"{split}.jsonl.gz").read_bytes()
+        second_bytes = (repeat_output / f"{split}.jsonl.gz").read_bytes()
+        assert first_bytes == second_bytes
 
 
 def test_paired_side_swapped_matches_share_the_same_split(tmp_path):
@@ -86,3 +91,24 @@ def test_dataset_requires_three_distinct_seed_groups(tmp_path):
         assert "three distinct simulator seed groups" in str(exc)
     else:
         raise AssertionError("expected too-few-seed-groups error")
+
+
+
+def test_dataset_refuses_to_overwrite_existing_artifacts(tmp_path):
+    matches = tmp_path / "matches"
+    matches.mkdir()
+    for index in range(3):
+        write_match(matches, f"match-{index}", index)
+
+    output = tmp_path / "dataset"
+    build_dataset(matches, output)
+    original = (output / "train.jsonl.gz").read_bytes()
+
+    try:
+        build_dataset(matches, output)
+    except FileExistsError as exc:
+        assert "choose a new output directory" in str(exc)
+    else:
+        raise AssertionError("expected existing-dataset protection")
+
+    assert (output / "train.jsonl.gz").read_bytes() == original
