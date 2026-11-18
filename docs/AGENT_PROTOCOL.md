@@ -172,6 +172,8 @@ The cadence is part of the versioned tournament profile, not a per-agent prefere
 
 Any agent class may enter either profile. All agents compared in one profile receive the same decision cadence, observation timing and action semantics. Ratings are never pooled across profiles. The 1-second profile reduces API calls for hosted models; it does not provide extra information or a different action interface. Agents can also enter the 250 ms profile if they can sustain its request rate.
 
+These values are **simulation decision cadences**, not inference-time or deliberation budgets. The simulation is paused while both agents respond, under a shared operational watchdog. An agent in the 1-second cadence is not granted four times as much wall-clock reasoning time; the engine simply advances 20 ticks rather than 5 between successive observations and action opportunities. The watchdog timeout is a failure-control mechanism, not a strategic compute budget.
+
 At the 250 ms cadence, a three-minute match has up to 720 decision opportunities per seat; at one second it has up to 180. Actual requests can be fewer when the match ends or the agent uses the real-time profile's one-outstanding-request rule.
 
 ### Efficient LLM prompting
