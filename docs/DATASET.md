@@ -34,6 +34,17 @@ Do not edit a generated shard after export. Re-run the exporter with the same so
 
 The trajectory data supports action-conditioned state forecasting. A forecast-only model is evaluated separately from competitive agent ratings. A model-based playing agent must also implement the competitive Agent interface.
 
-The versioned ForecastRequestV1 and ForecastResponseV1 JSON Schemas define the first forecast exchange contract. They bind each forecast to the source observation hash and requested horizon. They do not yet constitute a complete forecasting evaluator or a model leaderboard.
+The versioned ForecastRequestV1 and ForecastResponseV1 JSON Schemas define the forecast exchange contract. A request binds an observation, the intervening action sequence and the requested horizon to the source observation hash. The evaluator currently includes a persistence baseline and reports tower-HP MAE, elixir MAE, entity-type precision/recall/F1 and entity-count error at multiple decision-interval horizons. It is a baseline evaluation path, not yet a learned-model leaderboard.
 
 A training, validation and test split is only a data-management prerequisite. The final held-out evaluation should use a separately frozen match corpus or hidden seeds and should not be used for policy tuning.
+
+
+## Run the forecasting baseline
+
+After building the dataset, evaluate the persistence baseline on the held-out test shard:
+
+```powershell
+python -m royalebench forecast-eval --split results/dataset/test.jsonl.gz --horizons 1,2,4 --output results/forecast-persistence.json
+```
+
+The predictor receives only the starting ObservationV1 and the actions in the forecast interval. It does not receive match outcomes, target observations or future observations. The report records the input contract and the number of evaluated examples at each horizon. The persistence baseline is a sanity reference, not a learned world model.
