@@ -80,3 +80,24 @@ def test_yaml_config_loads_release_settings(tmp_path) -> None:
     assert config.tower_level == 11
     assert config.ticks_for_profile("fast-250ms-v1") == 5
     assert config.ticks_for_profile("llm-api-1s-v1") == 20
+
+
+
+def test_yaml_config_rejects_unsupported_schema_version(tmp_path):
+    source = tmp_path / "v2.yaml"
+    source.write_text(
+        "version: 2\nengine:\n  name: crforge\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="unsupported RoyaleBench configuration version"):
+        load_config(source)
+
+
+def test_yaml_config_rejects_noncanonical_engine_name(tmp_path):
+    source = tmp_path / "other-engine.yaml"
+    source.write_text(
+        "version: 1\nengine:\n  name: another-engine\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="requires the CRForge engine"):
+        load_config(source)
