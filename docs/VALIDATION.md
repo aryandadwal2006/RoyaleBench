@@ -6,7 +6,7 @@
 
 - Git with submodule support
 - Python 3.11 or newer
-- Java 21
+- Java 21 JDK (not only a Java runtime; the Python adapter loads the JVM through JPype)
 - Network access for the pinned upstream bootstrap and CRForge game-table download on the first build
 
 ## First-time run
@@ -18,7 +18,7 @@ git pull origin main
 .\scripts\validate_v1.ps1
 ```
 
-The script performs the complete setup and acceptance path:
+The script performs the complete setup and acceptance path. It resolves \`JAVA_HOME\` from the Java 21 executable on PATH, checks for \`jvm.dll\`, and verifies that JPype can locate the JVM before running the native adapter tests. If Java is exposed through a launcher that prevents automatic discovery, set \`$env:JAVA_HOME\` to the Java 21 JDK root before invoking the script.
 
 1. Synchronizes and verifies the pinned upstream submodules.
 2. Builds the CRForge `:env:installDist` runtime distribution and game tables.
