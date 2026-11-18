@@ -100,6 +100,14 @@ python -m royalebench tournament `
 
 This process boundary limits accidental credential exposure and provides startup/decision timeouts, but it is not an OS security sandbox. Do not run untrusted participants under your personal account without an additional container or OS isolation layer.
 
+## Benchmark documentation
+
+- [Architecture and design](docs/ARCHITECTURE.md)
+- [Agent protocol](docs/AGENT_PROTOCOL.md)
+- [Trajectory dataset and forecasting](docs/DATASET.md)
+- [Benchmark card and limitations](docs/BENCHMARK_CARD.md)
+- [Implementation roadmap and acceptance gates](docs/ROADMAP.md)
+
 ## Repository status
 
 The CRForge adapter, ObservationV1 converter, public-memory cycle tracker, action protocol, baseline agents, concurrent match runner, Glicko-2 ratings, paired tournament runner, OpenAI-compatible LLM adapter, JSONL subprocess adapter and match-level trajectory exporter are implemented. These components still require the final local acceptance run against your installed CRForge build. External pretrained checkpoints are not included in the official leaderboard until their observation/action adapters pass compatibility and reproducibility checks.
