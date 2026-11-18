@@ -6,6 +6,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+V1_CRFORGE_COMMIT = "fa5959055c590a493d62c8dbc804e602832d08a6"
+V1_DATA_VERSION = "16.635.8"
+V1_CONTENT_SHA = "062a11e0500c03cc041f123413b1ef1846b539a4"
+V1_CARD_LEVEL = 11
+V1_TOWER_LEVEL = 11
+V1_MAX_TICKS = 9000
+
 V1_DECK = (
     "Cannon",
     "Fireball",
@@ -24,10 +31,11 @@ class V1Config:
     """The frozen game rules shared by every structured-state v1 match."""
 
     deck: tuple[str, ...] = V1_DECK
-    data_version: str = "16.635.8"
-    card_level: int = 11
-    tower_level: int = 11
-    max_ticks: int = 9000
+    upstream_commit: str = V1_CRFORGE_COMMIT
+    data_version: str = V1_DATA_VERSION
+    card_level: int = V1_CARD_LEVEL
+    tower_level: int = V1_TOWER_LEVEL
+    max_ticks: int = V1_MAX_TICKS
     mask_version: int = 1
     action_resolution: str = "tile-center-v1"
     decision_profiles: tuple[tuple[str, int], ...] = V1_PROFILES
@@ -39,12 +47,18 @@ class V1Config:
             raise ValueError("deck card names must be non-empty strings")
         if len(set(self.deck)) != 8:
             raise ValueError("the v1 deck must contain eight distinct cards")
-        if not self.data_version.strip():
-            raise ValueError("data_version must be non-empty")
-        if self.card_level < 1 or self.tower_level < 1:
-            raise ValueError("card and tower levels must be positive")
-        if self.max_ticks < 0:
-            raise ValueError("max_ticks must be non-negative")
+        if tuple(self.deck) != V1_DECK:
+            raise ValueError("v1 fixes the exact mirrored Hog 2.6 deck and card ordering")
+        if self.upstream_commit != V1_CRFORGE_COMMIT:
+            raise ValueError("v1 fixes the pinned CRForge source commit")
+        if self.data_version != V1_DATA_VERSION:
+            raise ValueError("v1 fixes CRForge game-data version 16.635.8")
+        if self.card_level != V1_CARD_LEVEL or self.tower_level != V1_TOWER_LEVEL:
+            raise ValueError("v1 fixes card and tower levels at 11")
+        if self.max_ticks != V1_MAX_TICKS:
+            raise ValueError("v1 fixes the engine tick limit at 9000")
+        if self.decision_profiles != V1_PROFILES:
+            raise ValueError("v1 fixes the fast-250ms-v1 and llm-api-1s-v1 decision profiles")
         if self.mask_version != 1:
             raise ValueError("v1 fixes CRForge MASK_ALL_TILES semantics (mask_version=1)")
         if self.action_resolution != "tile-center-v1":
@@ -77,10 +91,11 @@ class V1Config:
         profile_rows = tuple((str(name), int(ticks)) for name, ticks in profiles.items())
         return cls(
             deck=tuple(str(card) for card in deck_raw),
-            data_version=str(engine.get("data_version", "16.635.8")),
-            card_level=int(match.get("card_level", 11)),
-            tower_level=int(match.get("tower_level", 11)),
-            max_ticks=int(match.get("max_ticks", 9000)),
+            upstream_commit=str(engine.get("upstream_commit", V1_CRFORGE_COMMIT)),
+            data_version=str(engine.get("data_version", V1_DATA_VERSION)),
+            card_level=int(match.get("card_level", V1_CARD_LEVEL)),
+            tower_level=int(match.get("tower_level", V1_TOWER_LEVEL)),
+            max_ticks=int(match.get("max_ticks", V1_MAX_TICKS)),
             mask_version=int(match.get("mask_version", 1)),
             action_resolution=str(match.get("action_resolution", "tile-center-v1")),
             decision_profiles=profile_rows or V1_PROFILES,
