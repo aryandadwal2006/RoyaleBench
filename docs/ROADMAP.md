@@ -85,13 +85,14 @@ Visual agents, real-time wall-clock competition, deck construction, alternate-en
 - [x] Make gzip output deterministic and prevent accidental overwrite of an existing dataset.
 - [x] Define ForecastRequestV1 and ForecastResponseV1 schemas bound to observation hashes and forecast horizons.
 - [ ] Implement persistence and simple event/state forecasting baselines.
-- [ ] Implement multi-horizon prediction metrics with missing/unknown field handling.
-- [ ] Add held-out prediction evaluation CLI and report generation.
-- [ ] Verify that dataset split policy and evaluator do not leak match outcomes or future transitions into model inputs.
+- [x] Implement multi-horizon metrics for visible tower HP, elixir, entity-type precision/recall/F1 and entity-count error, skipping missing numeric fields.
+- [x] Add held-out prediction evaluation CLI and JSON report generation.
+- [x] Keep outcomes and future observations outside the predictor call; test the action-prefix input contract.
+- [ ] Add explicit observation-hash verification and dataset-shard provenance validation to the forecasting evaluator.
 
 ## Remaining release work
 
-1. Implement the forecasting evaluator, persistence baseline, multi-horizon metrics and held-out report generation.
+1. Add observation-hash verification and source dataset manifest validation to forecasting evaluation; then support learned predictors through a documented adapter entry point.
 2. Finish protocol and FAIR observation audits, including hidden-state leakage and opponent-elixir accounting edge cases.
 3. Reconcile FirstLight and Hasty policies: inspect pinned source, checkpoint availability, licences, input/output semantics and card/version compatibility. If adaptation is not defensible, document them as external references rather than forcing them into v1.
 4. Add canonical replay/result fingerprints and paper-ready CSV/JSON summaries.
