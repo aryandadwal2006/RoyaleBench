@@ -27,6 +27,8 @@ Visual agents, real-time wall-clock competition, deck construction, alternate-en
 - [x] Freeze the mirrored Hog 2.6 v1 configuration and both decision profiles.
 - [x] Implement the Python adapter around CRForge `VectorBattle`.
 - [x] Validate engine data version, 18 x 32 action grid, and `MASK_ALL_TILES` at initialization.
+- [x] Validate effective CRForge cadence, card/tower levels, tick limit, mask and entity-ID versions, and native 20-tick command delay against v1 at startup.
+- [x] Validate the actual reset deck, card levels, symmetric tower HP and initial public-elixir values for both seats.
 - [x] Resolve configured deck labels to exact upstream vocabulary rows.
 - [ ] Run the headless adapter on the user's local Windows installation.
 - [ ] Record the local build's exact upstream test failures and decide which affect v1.
@@ -43,9 +45,10 @@ Visual agents, real-time wall-clock competition, deck construction, alternate-en
 - [x] Reject invalid coordinates; do not silently snap or repair agent actions.
 - [x] Keep native placement search and command delay in CRForge.
 - [x] Document field-level FAIR information provenance and converter-level hidden-field noninterference tests.
-- [ ] Complete two-seat hidden-state leakage and seat-frame tests against the native CRForge engine.
-- [ ] Add differential tests for opponent elixir estimation, including unsupported refunds/income mechanics.
-- [ ] Verify both seat coordinate transforms and the selected deck's placement mechanics against live CRForge runs.
+- [x] Add native CRForge integration tests for seat-frame transforms, unseen-opponent-deck noninterference and v1 enemy-elixir accounting.
+- [x] Wire the pinned upstream `:env:test` observation/elixir suite into final Windows acceptance.
+- [ ] Execute the native and RoyaleBench integration suites against the pinned local CRForge build.
+- [ ] Add a direct hidden hand/queue/elixir mutation fixture, if safely exposed by the native engine.
 
 ### Agent SDK and execution
 
@@ -94,7 +97,7 @@ Visual agents, real-time wall-clock competition, deck construction, alternate-en
 ## Remaining release work
 
 1. Add a documented learned-predictor adapter entry point and broaden forecasting metrics to entity identity, movement and event timing where CRForge exposes reliable stable identifiers.
-2. Complete the native two-seat FAIR audit and verify opponent-elixir accounting under the exact fixed v1 deck.
+2. Execute and reconcile the native two-seat FAIR and elixir tests; add an explicit entity-overflow acceptance test.
 3. Reconcile FirstLight and Hasty policies: inspect pinned source, checkpoint availability, licences, input/output semantics and card/version compatibility. If adaptation is not defensible, document them as external references rather than forcing them into v1.
 4. Add canonical replay/result fingerprints and paper-ready CSV/JSON summaries.
 5. Add container isolation before accepting untrusted public submissions; the current subprocess boundary is not a security sandbox.
@@ -114,7 +117,8 @@ python -m pip install -e .\third_party\upstream\crforge\python
 ```
 
 The integrated script must finish with:
-- Python tests passing.
+- Pinned CRForge `:env:test` native environment suite passing.
+- RoyaleBench Python tests passing.
 - Ruff passing.
 - V1 config validation passing.
 - Real headless CRForge matches completing for both seats.
