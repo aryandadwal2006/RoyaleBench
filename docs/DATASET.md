@@ -34,7 +34,7 @@ Do not edit a generated shard after export. Re-run the exporter with the same so
 
 The trajectory data supports action-conditioned state forecasting. A forecast-only model is evaluated separately from competitive agent ratings. A model-based playing agent must also implement the competitive Agent interface.
 
-The versioned ForecastRequestV1 and ForecastResponseV1 JSON Schemas define the forecast exchange contract. A request binds an observation, the intervening action sequence and the requested horizon to the source observation hash. The evaluator currently includes a persistence baseline and reports tower-HP MAE, elixir MAE, entity-type precision/recall/F1 and entity-count error at multiple decision-interval horizons. It is a baseline evaluation path, not yet a learned-model leaderboard.
+The versioned ForecastRequestV1 and ForecastResponseV1 JSON Schemas define the forecast exchange contract. A request binds an observation, the intervening action sequence and the requested horizon to the source observation hash. The evaluator includes a persistence baseline and reports tower-HP MAE, own/opponent elixir MAE, entity-type precision/recall/F1, stable entity-ID precision/recall/F1, matched-entity position error in tiles, visible entity HP MAE and entity-count error at multiple decision-interval horizons. Stable IDs are seat-local first-sight IDs from CRForge and are matched only within the same match/seat trajectory. Forecast evaluation validates contiguous decision IDs, observation identity, source/target ticks and the chained observation hashes before scoring. The evaluator is also callable from Python with any object implementing the `Forecaster` protocol; see [FORECASTER_API.md](FORECASTER_API.md). The built-in persistence model remains a sanity baseline, not a learned-model leaderboard.
 
 A training, validation and test split is only a data-management prerequisite. The final held-out evaluation should use a separately frozen match corpus or hidden seeds and should not be used for policy tuning.
 
@@ -48,3 +48,8 @@ python -m royalebench forecast-eval --split results/dataset/test.jsonl.gz --hori
 ```
 
 The predictor receives only the starting ObservationV1 and the actions in the forecast interval. It does not receive match outcomes, target observations or future observations. Before evaluation, the runner verifies the shard SHA-256 against dataset_manifest.json and recomputes both observation hashes in every transition. The report records the verified dataset provenance, input contract and number of evaluated examples at each horizon. The persistence baseline is a sanity reference, not a learned world model.
+
+
+## Learned forecaster adapter
+
+The evaluation function accepts any Python object with a `name` and a `predict(observation, actions, horizon_ticks=...)` method. This lets researchers evaluate an existing model without adding its training stack or dependencies to RoyaleBench. See [the Forecaster API](FORECASTER_API.md).
