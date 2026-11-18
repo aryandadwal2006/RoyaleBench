@@ -84,6 +84,41 @@ def test_tournament_cli_parses_external_command_as_json_array():
     assert args.external_agent_pass_env == "MODEL_API_KEY,OTHER_TOKEN"
 
 
+def test_tournament_cli_reads_external_command_from_json_file(tmp_path):
+    command_file = tmp_path / "worker-command.json"
+    command_file.write_text(
+        json.dumps([sys.executable, "worker with spaces.py"]),
+        encoding="utf-8",
+    )
+    args = build_parser().parse_args(
+        [
+            "tournament",
+            "--agents",
+            "random-legal-v1,research-agent",
+            "--external-agent-name",
+            "research-agent",
+            "--external-agent-command-file",
+            str(command_file),
+        ]
+    )
+    assert args.external_agent_command == [sys.executable, "worker with spaces.py"]
+
+
+def test_tournament_cli_rejects_both_external_command_sources(tmp_path):
+    command_file = tmp_path / "worker-command.json"
+    command_file.write_text('["python", "worker.py"]', encoding="utf-8")
+    with pytest.raises(SystemExit):
+        build_parser().parse_args(
+            [
+                "tournament",
+                "--external-agent-command",
+                '["python", "worker.py"]',
+                "--external-agent-command-file",
+                str(command_file),
+            ]
+        )
+
+
 def test_tournament_cli_rejects_non_array_external_command():
     with pytest.raises(SystemExit):
         build_parser().parse_args(
