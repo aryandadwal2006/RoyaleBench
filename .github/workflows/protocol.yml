@@ -25,3 +25,35 @@ jobs:
         run: python -m pytest
       - name: Lint
         run: python -m ruff check src tests
+
+  windows-bootstrap:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Parse PowerShell scripts
+        shell: pwsh
+        run: |
+          $files = @(
+            "scripts/bootstrap_upstreams.ps1",
+            "scripts/build_engine.ps1",
+            "scripts/validate_v1.ps1"
+          )
+          foreach ($file in $files) {
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile(
+              (Resolve-Path $file),
+              [ref]$tokens,
+              [ref]$errors
+            ) | Out-Null
+            if ($errors.Count -gt 0) {
+              $errors | ForEach-Object { Write-Error $_.ToString() }
+              throw "PowerShell parse failed: $file"
+            }
+            Write-Host "PowerShell syntax OK: $file"
+          }
+      - name: Verify upstream submodule pins
+        shell: pwsh
+        run: .\scripts\bootstrap_upstreams.ps1
