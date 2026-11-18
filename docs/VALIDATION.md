@@ -24,7 +24,7 @@ The script performs the complete setup and acceptance path:
 2. Builds the CRForge `:env:installDist` runtime distribution and game tables.
 3. Installs the RoyaleBench and pinned CRForge Python packages.
 4. Runs the pinned CRForge Gradle `:env:test` suite.
-5. Runs RoyaleBench's Python tests and Ruff.
+5. Runs RoyaleBench's Python tests and Ruff. The JUnit report is checked so all three native CRForge adapter tests must execute without skips.
 6. Checks the frozen v1 configuration.
 7. Runs the paired random-legal versus Hog-cycle baseline tournament.
 8. Runs the external JSONL worker integration tournament.
@@ -67,6 +67,7 @@ No tournament match, trajectory dataset or forecast was produced by that partial
 Each run writes to a timestamped directory under `results/validation-YYYYMMDD-HHMMSS/`, including:
 
 - `validation_report.json`
+- `pytest-junit.xml`, including an explicit zero-skip gate for the native adapter tests
 - paired baseline tournament output
 - external JSONL-agent tournament output
 - `trajectory_dataset/` with three compressed splits and a manifest
