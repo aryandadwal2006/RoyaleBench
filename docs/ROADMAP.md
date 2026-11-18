@@ -88,7 +88,7 @@ Visual agents, real-time wall-clock competition, deck construction, alternate-en
 - [x] Implement multi-horizon metrics for visible tower HP, elixir, entity-type precision/recall/F1 and entity-count error, skipping missing numeric fields.
 - [x] Add held-out prediction evaluation CLI and JSON report generation.
 - [x] Keep outcomes and future observations outside the predictor call; test the action-prefix input contract.
-- [ ] Add explicit observation-hash verification and dataset-shard provenance validation to the forecasting evaluator.
+- [x] Verify the dataset shard against its manifest SHA-256 and validate source/target observation hashes before forecasting.
 
 ## Remaining release work
 
