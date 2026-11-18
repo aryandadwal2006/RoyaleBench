@@ -21,6 +21,7 @@ htmlcov/
 !.env.example
 
 # Generated benchmark artifacts (store externally or in an artifact service)
+results/**
 artifacts/**
 !artifacts/.gitkeep
 
