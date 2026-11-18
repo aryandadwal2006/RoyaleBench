@@ -1,12 +1,28 @@
 from __future__ import annotations
 
+import os
 import sys
 
 import pytest
 
-from royalebench.agents.subprocess_agent import AgentProcessError, JsonlSubprocessAgent
+from royalebench.agents.subprocess_agent import SubprocessAgent
 
 WAIT = {"schema": "royalebench.action.v1", "type": "wait"}
+
+
+def _worker_body(action_block: str) -> str:
+    return (
+        "import json, sys\n"
+        "for line in sys.stdin:\n"
+        "    request = json.loads(line)\n"
+        "    kind = request.get('type')\n"
+        "    if kind == 'start':\n"
+        "        print(json.dumps({'schema': 'royalebench.agent-event.v1', 'type': 'ready'}), flush=True)\n"
+        "    elif kind == 'act':\n"
+        + "\n".join("        " + line for line in action_block.splitlines())
+        + "\n    elif kind == 'close':\n"
+        "        break\n"
+    )
 
 
 def observation() -> dict:
@@ -18,88 +34,81 @@ def observation() -> dict:
     }
 
 
-def test_jsonl_subprocess_agent_round_trip_and_telemetry():
-    child = r"""
-import json
-import sys
-
-for line in sys.stdin:
-    request = json.loads(line)
-    if request["type"] == "act":
-        print(json.dumps({
-            "request_id": request["request_id"],
-            "decision_id": request["decision_id"],
-            "observation_hash": request["observation_hash"],
-            "action": {"schema": "royalebench.action.v1", "type": "wait"},
-            "telemetry": {"policy": "test-worker"}
-        }), flush=True)
-    elif request["type"] == "close":
-        break
+def test_subprocess_agent_round_trip_and_telemetry(monkeypatch):
+    sentinel = "ROYALEBENCH_TEST_PARENT_SECRET"
+    monkeypatch.setenv(sentinel, "must-not-be-inherited")
+    action_block = """
+print(json.dumps({
+    'schema': 'royalebench.agent-response.v1',
+    'request_id': request['request_id'],
+    'decision_id': request['decision_id'],
+    'observation_hash': request['observation_hash'],
+    'action': {'schema': 'royalebench.action.v1', 'type': 'wait'},
+    'telemetry': {'parent_secret_inherited': __import__('os').environ.get('ROYALEBENCH_TEST_PARENT_SECRET') is not None}
+}), flush=True)
 """
-    agent = JsonlSubprocessAgent(
+    agent = SubprocessAgent(
         "jsonl-test",
-        [sys.executable, "-u", "-c", child],
+        [sys.executable, "-u", "-c", _worker_body(action_block)],
         timeout_s=2.0,
     )
     agent.reset({"match_id": "subprocess-match", "seat": 0})
     try:
         assert agent.act(observation()) == WAIT
-        assert agent.last_telemetry == {"policy": "test-worker"}
+        assert agent.last_telemetry == {"parent_secret_inherited": False}
     finally:
         agent.close()
 
 
-def test_jsonl_subprocess_agent_enforces_timeout_and_terminates_child():
-    child = r"""
-import json
-import sys
+def test_subprocess_agent_enforces_timeout_and_terminates_child():
+    action_block = """
 import time
-
-for line in sys.stdin:
-    request = json.loads(line)
-    if request["type"] == "act":
-        time.sleep(10)
-    elif request["type"] == "close":
-        break
+time.sleep(10)
 """
-    agent = JsonlSubprocessAgent(
+    agent = SubprocessAgent(
         "sleeping-test",
-        [sys.executable, "-u", "-c", child],
+        [sys.executable, "-u", "-c", _worker_body(action_block)],
         timeout_s=0.05,
         shutdown_timeout_s=0.1,
     )
     agent.reset({"match_id": "subprocess-match", "seat": 0})
-    with pytest.raises(TimeoutError, match="response deadline"):
+    with pytest.raises(TimeoutError, match="response timeout"):
         agent.act(observation())
     assert agent._process is None
     agent.close()
 
 
-def test_jsonl_subprocess_agent_rejects_stale_response():
-    child = r"""
-import json
-import sys
-
-for line in sys.stdin:
-    request = json.loads(line)
-    if request["type"] == "act":
-        print(json.dumps({
-            "request_id": "stale-request",
-            "decision_id": request["decision_id"],
-            "observation_hash": request["observation_hash"],
-            "action": {"schema": "royalebench.action.v1", "type": "wait"}
-        }), flush=True)
-    elif request["type"] == "close":
-        break
+def test_subprocess_agent_rejects_stale_response():
+    action_block = """
+print(json.dumps({
+    'schema': 'royalebench.agent-response.v1',
+    'request_id': 'stale-request',
+    'decision_id': request['decision_id'],
+    'observation_hash': request['observation_hash'],
+    'action': {'schema': 'royalebench.action.v1', 'type': 'wait'}
+}), flush=True)
 """
-    agent = JsonlSubprocessAgent(
+    agent = SubprocessAgent(
         "stale-test",
-        [sys.executable, "-u", "-c", child],
+        [sys.executable, "-u", "-c", _worker_body(action_block)],
         timeout_s=2.0,
     )
     agent.reset({"match_id": "subprocess-match", "seat": 0})
     try:
-        with pytest.raises(AgentProcessError, match="request_id"):
+        with pytest.raises(ValueError, match="request_id"):
             agent.act(observation())
     finally:
         agent.close()
+
+
+def test_subprocess_agent_requires_startup_handshake():
+    child = "import time; time.sleep(10)"
+    agent = SubprocessAgent(
+        "no-handshake",
+        [sys.executable, "-u", "-c", child],
+        startup_timeout_s=0.05,
+        shutdown_timeout_s=0.1,
+    )
+    with pytest.raises(TimeoutError, match="response timeout"):
+        agent.reset({"match_id": "subprocess-match", "seat": 0})
+    assert agent._process is None
