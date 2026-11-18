@@ -143,6 +143,15 @@ def _parse_external_command(value: str) -> list[str]:
     return command
 
 
+def _parse_external_command_file(value: str) -> list[str]:
+    """Read an external worker argv from UTF-8 JSON, including PowerShell-generated files."""
+    try:
+        content = Path(value).read_text(encoding="utf-8-sig")
+    except OSError as exc:
+        raise argparse.ArgumentTypeError(f"could not read external command file: {exc}") from exc
+    return _parse_external_command(content)
+
+
 def _load(args: argparse.Namespace):
     path = Path(args.config) if args.config else _root() / "configs" / "v1.yaml"
     return load_config(path)
@@ -280,11 +289,18 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="name used for one external JSONL subprocess participant (must appear in --agents)",
     )
-    tournament.add_argument(
+    external_command = tournament.add_mutually_exclusive_group()
+    external_command.add_argument(
         "--external-agent-command",
         type=_parse_external_command,
         default=None,
         help='JSON string array command, for example \'["python","agent.py"]\'',
+    )
+    external_command.add_argument(
+        "--external-agent-command-file",
+        type=_parse_external_command_file,
+        default=None,
+        help="path to a UTF-8 JSON file containing the external worker argv array",
     )
     tournament.add_argument(
         "--external-agent-cwd",
