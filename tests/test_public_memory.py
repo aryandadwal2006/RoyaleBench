@@ -36,18 +36,18 @@ def test_four_recent_distinct_plays_in_newest_first_order_identify_hand_set():
     ]
 
 
-def test_unshown_last_play_invalidates_exact_cycle_even_if_older_four_are_known():
-    history = rows("Fireball", "TheLog", "Skeletons", "Musketeer", "IceSpirit")
-    history[-1]["flags"] = 0
-    history[-1]["card"] = None
+def test_unshown_latest_play_invalidates_exact_cycle():
+    history = rows("IceSpirit", "Musketeer", "Skeletons", "TheLog", "Fireball")
+    history[0]["card_shown"] = False
+    history[0]["card"] = None
     cycle = derive_opponent_cycle(DECK, history, play_count=5)
     assert cycle["hand_exact"] is False
     assert cycle["queue_oldest_to_newest"] is None
 
 
 def test_trailing_unused_rows_are_not_counted_as_actual_plays():
-    history = rows("TheLog", "Skeletons", "Musketeer", "IceSpirit")
-    history += [{"card": None, "flags": 0}] * 4
+    history = rows("IceSpirit", "Musketeer", "Skeletons", "TheLog")
+    history += [{"card": None, "card_shown": False}] * 4
     cycle = derive_opponent_cycle(DECK, history, play_count=4)
     assert cycle["hand_exact"] is True
     assert cycle["queue_oldest_to_newest"][0] == "TheLog"
