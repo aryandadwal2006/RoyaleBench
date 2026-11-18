@@ -71,8 +71,9 @@ Visual agents, real-time wall-clock competition, deck construction, alternate-en
 - [x] Implement round-robin matches with paired seat swaps and deterministic seeds.
 - [x] Implement Glicko-2 with frozen pre-period opponent ratings.
 - [x] Compute a seed-cluster bootstrap interval for aggregate score.
-- [ ] Add canonical result/replay fingerprints and a top-level tournament provenance manifest.
-- [ ] Add tests for match-end callbacks and watchdog cancellation through the complete runner.
+- [x] Add a top-level tournament provenance manifest with hashes for match manifests and summary artifacts.
+- [ ] Add canonical replay fingerprints (the pinned engine adapter does not yet expose a stable replay artifact hash).
+- [x] Add tests for seat-scoped match-end callbacks and watchdog cancellation through the runner.
 - [ ] Validate rankings, W/D/L counts and rating period semantics on actual CRForge matches.
 
 ### Trajectory dataset and world-model evaluation
@@ -82,7 +83,7 @@ Visual agents, real-time wall-clock competition, deck construction, alternate-en
 - [x] Group split assignment by simulator seed so paired seat-swapped matches cannot leak across splits.
 - [x] Record data provenance, split membership, transition counts and SHA-256 hashes.
 - [x] Make gzip output deterministic and prevent accidental overwrite of an existing dataset.
-- [ ] Add an explicit world-model predictor request/response schema.
+- [x] Define ForecastRequestV1 and ForecastResponseV1 schemas bound to observation hashes and forecast horizons.
 - [ ] Implement persistence and simple event/state forecasting baselines.
 - [ ] Implement multi-horizon prediction metrics with missing/unknown field handling.
 - [ ] Add held-out prediction evaluation CLI and report generation.
@@ -90,14 +91,15 @@ Visual agents, real-time wall-clock competition, deck construction, alternate-en
 
 ## Remaining release work
 
-1. Finish protocol, fairness, subprocess, runner and dataset regression tests.
-2. Implement the minimal world-model forecast interface and baselines without adding training code.
-3. Reconcile FirstLight and Hasty policies: inspect each pinned source, checkpoint availability, licences, input/output semantics and card/version compatibility. If adaptation is not defensible, document them as external references rather than forcing them into v1.
-4. Add benchmark-level manifests, replay hashing, and paper-ready CSV/JSON summaries.
-5. Update installation docs and the benchmark card to reflect only implemented behaviour.
-6. Run the integrated Windows validation script once the implementation is frozen.
-7. Run a preregistered/pinned final tournament with enough independent seeds for meaningful uncertainty.
-8. Generate the paper's result tables, figures and limitations from saved artifacts.
+1. Implement the forecasting evaluator, persistence baseline, multi-horizon metrics and held-out report generation.
+2. Finish protocol and FAIR observation audits, including hidden-state leakage and opponent-elixir accounting edge cases.
+3. Reconcile FirstLight and Hasty policies: inspect pinned source, checkpoint availability, licences, input/output semantics and card/version compatibility. If adaptation is not defensible, document them as external references rather than forcing them into v1.
+4. Add canonical replay/result fingerprints and paper-ready CSV/JSON summaries.
+5. Add container isolation before accepting untrusted public submissions; the current subprocess boundary is not a security sandbox.
+6. Update the benchmark card and paper methods to reflect only implemented behaviour.
+7. Run the integrated Windows validation script once the implementation is frozen.
+8. Run a preregistered/pinned final tournament with enough independent seeds for meaningful uncertainty.
+9. Generate the paper's result tables, figures and limitations from saved artifacts.
 
 ## Final Windows acceptance
 
