@@ -25,7 +25,7 @@ class _GzipJsonlWriter:
     def __init__(self, path: Path) -> None:
         self.raw = path.open("wb")
         self.compressed = gzip.GzipFile(fileobj=self.raw, mode="wb", mtime=0)
-        self.text = io.TextIOWrapper(self.compressed, encoding="utf-8")
+        self.text = io.TextIOWrapper(self.compressed, encoding="utf-8", newline="\\n")
 
     def write(self, record: dict[str, Any]) -> None:
         self.text.write(json.dumps(record, sort_keys=True, separators=(",", ":")))
@@ -169,6 +169,13 @@ def build_dataset(
     )
     destination.mkdir(parents=True, exist_ok=True)
     paths = {split: destination / f"{split}.jsonl.gz" for split in split_sources}
+    manifest_path = destination / "dataset_manifest.json"
+    existing_outputs = [path for path in (*paths.values(), manifest_path) if path.exists()]
+    if existing_outputs:
+        names = ", ".join(str(path) for path in existing_outputs)
+        raise FileExistsError(
+            f"dataset output already exists ({names}); choose a new output directory"
+        )
     writers = {split: _GzipJsonlWriter(path) for split, path in paths.items()}
     transition_counts = {split: 0 for split in split_sources}
     transition_matches = {split: [] for split in split_sources}
@@ -253,7 +260,6 @@ def build_dataset(
             for split, path in paths.items()
         },
     }
-    manifest_path = destination / "dataset_manifest.json"
     manifest_path.write_text(
         json.dumps(manifest, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
