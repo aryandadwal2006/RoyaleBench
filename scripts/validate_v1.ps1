@@ -16,6 +16,7 @@ $TournamentRoot = Join-Path $ValidationRoot "tournament"
 $ExternalTournamentRoot = Join-Path $ValidationRoot "external-agent-tournament"
 $DatasetRoot = Join-Path $ValidationRoot "trajectory_dataset"
 $ForecastReportPath = Join-Path $ValidationRoot "forecast-persistence.json"
+$PytestReportPath = Join-Path $ValidationRoot "pytest-junit.xml"
 
 Write-Host "=== RoyaleBench v1 integrated validation ==="
 Write-Host "Repository: $Root"
@@ -102,9 +103,21 @@ Write-Host "CRForge runtime: $CrforgeInstall ($($CrforgeJars.Count) JAR files)"
 Write-Host "CRForge game tables: $CrforgeTables"
 Write-Host "CRForge native test report: $NativeTestReport"
 
+New-Item -ItemType Directory -Force -Path $ValidationRoot | Out-Null
+
 Write-Host "=== Python tests ==="
-& $Python -m pytest
+& $Python -m pytest --junitxml $PytestReportPath
 if ($LASTEXITCODE -ne 0) { throw "Python tests failed." }
+[xml]$PytestXml = Get-Content $PytestReportPath -Raw
+$NativePythonCases = $PytestXml.SelectNodes("//testcase[contains(@classname, 'test_crforge_native')]")
+$NativePythonSkips = $PytestXml.SelectNodes("//testcase[contains(@classname, 'test_crforge_native')]/skipped")
+if ($NativePythonCases.Count -lt 3) {
+    throw "Expected at least three CRForge native adapter tests, found $($NativePythonCases.Count)."
+}
+if ($NativePythonSkips.Count -gt 0) {
+    throw "CRForge native adapter tests must execute without skips; found $($NativePythonSkips.Count) skipped test(s)."
+}
+Write-Host "CRForge native adapter tests: $($NativePythonCases.Count) collected, 0 skipped."
 
 Write-Host "=== Ruff ==="
 & $Python -m ruff check src tests
@@ -113,8 +126,6 @@ if ($LASTEXITCODE -ne 0) { throw "Ruff checks failed." }
 Write-Host "=== Configuration ==="
 & $Python -m royalebench config-check
 if ($LASTEXITCODE -ne 0) { throw "V1 configuration validation failed." }
-
-New-Item -ItemType Directory -Force -Path $ValidationRoot | Out-Null
 
 Write-Host "=== Headless paired tournament ==="
 & $Python -m royalebench tournament --profile $Profile --agents "random-legal-v1,hog-cycle-rules-v1" --seeds $Seeds --output $TournamentRoot
@@ -198,6 +209,7 @@ $Report = [ordered]@{
         external_agent_tournament = $ExternalTournamentRoot
         dataset = $DatasetRoot
         forecast_report = $ForecastReportPath
+        pytest_junit_report = $PytestReportPath
     }
 }
 $ReportPath = Join-Path $ValidationRoot "validation_report.json"
