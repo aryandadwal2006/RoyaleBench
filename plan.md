@@ -569,6 +569,7 @@ Keep the current v1 acceptance surface stable. Add the research suite behind a n
 - [ ] Implement intervention rollouts with fixed opponent/continuation policies.
 - [ ] Compute candidate-set regret, paired action-value differences and uncertainty.
 - [ ] Build a stratified scenario corpus across game phase, elixir, tower-health situation, deck matchup and observed opponent strategy.
+- [ ] Implement competency-specific resource-management, opponent-cycle inference, spatial-placement and temporal-response tasks; add adaptation-switch tasks if robust scenario generation is available.
 - [ ] Verify metric stability under alternative continuation policies and opponent pools.
 - [ ] Add a small independent expert review for face validity if suitable expert annotators are available.
 - [ ] Publish candidate-set limitations; do not call the metric optimal regret or Nash exploitability.
@@ -582,9 +583,11 @@ Keep the current v1 acceptance surface stable. Add the research suite behind a n
 
 - [ ] Retain random-legal and current Hog-cycle rules.
 - [ ] Implement deck-aware heuristic baselines for the additional archetypes.
+- [ ] Train a compact masked behaviour-cloning / imitation policy on verified demonstrations.
 - [ ] Train at least one compact masked PPO policy on CRForge using training seed groups.
+- [ ] Implement a deterministic short-horizon search baseline using candidate actions and fixed continuation policies.
 - [ ] Evaluate validation checkpoints and freeze the chosen checkpoint before the final test.
-- [ ] Run two or three frozen LLM model versions if budget permits; otherwise prioritise one strong hosted model plus the PPO policy and report the narrower model coverage.
+- [ ] Run frozen LLM and VLM model families; compare at least one multimodal family in both structured-text and screenshot modes on matched states.
 - [ ] Record prompts, model IDs, endpoint/provider, decoding, retries, timestamps, token usage, cost and output validation.
 - [ ] Test reproducibility and seed generalization of the learned policy.
 - [ ] Audit external public policy code/checkpoints for licensing and semantic compatibility. Do not force incompatible RoyaleSim/FirstLight/Hasty policies into CRForge's leaderboard.
@@ -599,6 +602,7 @@ Keep the current v1 acceptance surface stable. Add the research suite behind a n
 - [ ] Run full versus no-derived-memory ablations.
 - [ ] Run raw-event-history versus summarized-memory only if the information budget can be matched.
 - [ ] Run controlled public-event corruption/omission experiments.
+- [ ] Complete matched visual-versus-structured evaluations and decompose perception, temporal tracking, action-grounding and strategic-choice errors.
 - [ ] Compare 5-tick and 20-tick cadence as simulation-frequency settings, keeping separate ratings.
 - [ ] Analyse performance by deck, matchup, opponent family and seat.
 - [ ] Measure whether an agent's ranking changes between mirror and cross-archetype play.
@@ -816,18 +820,17 @@ If the counterfactual evaluator cannot be validated, the paper must change its c
 
 ## 14. Explicitly out of scope before ICML submission
 
-Do not spend the remaining schedule on:
-- a visual-agent track or screenshot renderer;
-- a live Clash Royale client/account integration;
+Do not spend the first ICML benchmark-paper schedule on:
+- live Clash Royale client/account integration or unauthorized public-match automation;
 - pooling RoyaleSim and CRForge ratings. A second engine may be added as a separately reported replication/transfer track only after the primary CRForge evaluation is complete and semantic compatibility is demonstrated;
-- deck-building or automatic deck search;
-- large-scale self-play league infrastructure;
+- full deck-building or automatic deck search, unless a specific deck-generalization question requires a tightly controlled subset;
+- the large-scale league-training programme for the eventual elite player (that belongs to Project Crown and the second paper);
 - online public submissions or a secure multi-tenant sandbox;
-- custom game-engine development;
-- a broad learned world-model training stack unless it directly supports the central claim;
-- a claim of general game intelligence or human-level play.
+- building a custom battle engine instead of using validated upstream engines;
+- a large learned world-model stack that is not connected to a specific prediction or planning question;
+- claims of general game intelligence, human-level play or professional-level play without direct evidence.
 
-The external process adapter is not an OS security sandbox. Do not invite untrusted public code until proper isolation is implemented.
+The visual renderer, screenshot track, competency diagnostics, small PPO/imitation/search baselines and a focused world-model study are now in scope for the ICML benchmark paper. The external process adapter is not an OS security sandbox. Do not invite untrusted public code until proper isolation is implemented.
 
 ---
 
