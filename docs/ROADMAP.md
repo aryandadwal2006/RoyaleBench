@@ -1,181 +1,125 @@
-# Implementation Roadmap
+# RoyaleBench v1 Implementation Status
 
-**Status:** Planning/bootstrap. No engine adapter, match runner or agent SDK is implemented yet.
+**Status:** Core benchmark implementation is in place; final local CRForge acceptance and research evaluation remain outstanding.
 
-The roadmap is ordered to reduce research risk. Do not build LLM provider integrations or world-model planners before the environment, visibility and action semantics are tested.
+This roadmap distinguishes code that exists from evidence that it has been validated against the pinned native engine. A checked implementation item does not imply that the user's Windows installation or the upstream CRForge test suite has passed.
 
-## Phase 0 — Repository and upstream bootstrap
+## Frozen v1 scope
 
-- [x] Create repository design README.
-- [x] Write architecture specification.
-- [x] Write upstream reuse/licensing plan.
-- [x] Pin upstream source trees as Git submodules.
-- [x] Add third-party notices and a reproducible local setup guide.
-- [x] Add Python package metadata, formatting, typing and CI.
-- [x] Add architecture decision records for engine, action resolution, observation cadence and latency modes.
+- One canonical engine: CRForge commit `fa5959055c590a493d62c8dbc804e602832d08a6`.
+- Game-data version: `16.635.8`, with its local content SHA recorded in match manifests.
+- Fixed mirrored Hog 2.6 deck, card/tower level 11.
+- CRForge 18 x 32 tile-centre action grid, `MASK_ALL_TILES=1`, native PlayerCommands placement.
+- FAIR structured observation only; opponent hand/queue/elixir are not read from privileged engine state.
+- Two paused-clock strategic cadence profiles: 5 and 20 CRForge ticks.
+- In-process baseline/LLM agents and isolated JSONL subprocess participants.
+- Paired seat-swapped tournaments, Glicko-2 ratings, match logs and automatic trajectory export.
+- World-model forecasting uses an independent evaluation interface and is not mixed with competitive agent ratings.
 
-**Exit gate:** a clean clone with recursive submodules can show the exact upstream source revisions used by the design.
+Visual agents, real-time wall-clock competition, deck construction, alternate-engine rankings, half-tile actions, live-game account automation and training a new RL policy are outside v1.
 
-### Protocol bootstrap (completed ahead of Phase 1)
+## Implemented components
 
-- [x] Add versioned ActionV1 JSON Schema.
-- [x] Add request-bound AgentResponseV1 envelope.
-- [x] Add typed Python parsing/validation for wait, play and ability actions.
-- [x] Validate tile-centre and half-tile action coordinates without silently snapping.
-- [x] Add request ID, decision ID and observation-hash checks to reject stale responses.
-- [x] Add unit tests and a GitHub Actions test/lint workflow.
+### Repository, engine adapter and configuration
 
-The half-tile code validates a proposed protocol resolution only. It does not yet extend crforge's engine action schema or masks.
+- [x] Pin CRForge, RoyaleGym and RoyaleSim upstream revisions as submodules.
+- [x] Add Windows bootstrap and CRForge environment-build scripts.
+- [x] Freeze the mirrored Hog 2.6 v1 configuration and both decision profiles.
+- [x] Implement the Python adapter around CRForge `VectorBattle`.
+- [x] Validate engine data version, 18 x 32 action grid, and `MASK_ALL_TILES` at initialization.
+- [x] Resolve configured deck labels to exact upstream vocabulary rows.
+- [ ] Run the headless adapter on the user's local Windows installation.
+- [ ] Record the local build's exact upstream test failures and decide which affect v1.
 
-## Phase 1 — Engine acceptance and human-play prototype
+### Observation and action contracts
 
-- [ ] Build crforge with its documented Java 21 toolchain.
-- [ ] Build one selected game-data version locally; record the version and content hash.
-- [ ] Run all upstream tests and the relevant conformance suite.
-- [ ] Verify every card/mechanic in the first fixed deck.
-- [ ] Run the existing desktop visualizer and play both seats manually.
-- [ ] Test identical seed/action replay determinism.
-- [ ] Test player-command delay, pending elixir reservation, native placement and refusal reasons.
-- [ ] Test both seat observations for hidden-state leakage.
-- [ ] Write RoyaleBench's engine acceptance report.
+- [x] Add ActionV1 and AgentResponseV1 JSON Schemas and typed Python validators.
+- [x] Add ObservationV1 conversion from CRForge's seat-visible arrays.
+- [x] Use seat-relative entity side and coordinates supplied by CRForge's observation writer.
+- [x] Expose hand, public deck, visible entities/effects, towers, public events and legal action masks.
+- [x] Track opponent card-cycle deductions from CRForge's newest-first public play ledger.
+- [x] Preserve unknown card identities and decline exact-hand inference when the latest four public plays are not all known and distinct.
+- [x] Validate hand-slot identity before encoding a play action.
+- [x] Reject invalid coordinates; do not silently snap or repair agent actions.
+- [x] Keep native placement search and command delay in CRForge.
+- [ ] Complete a field-by-field FAIR information audit and two-seat hidden-state leakage tests.
+- [ ] Add differential tests for opponent elixir estimation, including unsupported refunds/income mechanics.
+- [ ] Verify both seat coordinate transforms and the selected deck's placement mechanics against live CRForge runs.
 
-**Exit gate:** a reproducible local human-vs-human simulated match, with saved replay, exact engine/data provenance and documented unsupported cases.
+### Agent SDK and execution
 
-## Phase 2 — Canonical match runner and protocol
+- [x] Define the in-process Python Agent lifecycle.
+- [x] Implement no-op, random-legal and transparent Hog-cycle rule baselines.
+- [x] Implement an OpenAI-compatible structured JSON-action agent.
+- [x] Implement a persistent JSONL subprocess transport with startup handshake, request identity, response validation and match-end event.
+- [x] Give child processes a restricted inherited environment; pass selected participant credentials explicitly.
+- [x] Add startup, decision and shutdown timeouts; terminate a timed-out worker process tree.
+- [x] Add an external-lab example worker.
+- [x] Allow an external JSONL participant in CLI tournaments.
+- [ ] Add a container isolation runner before accepting untrusted public submissions. The current subprocess boundary is not a security sandbox.
+- [ ] Integrate FirstLight or Hasty pretrained weights only after exact observation/action compatibility and licensing checks.
+- [ ] Do not list external checkpoints on a leaderboard until their adapters pass reproducibility tests.
 
-- [ ] Implement a Python engine adapter around the crforge environment.
-- [ ] Define JSON Schemas for ObservationV1, ActionV1, AgentMetadataV1 and MatchManifestV1.
-- [ ] Implement typed Python dataclasses and validators from those schemas.
-- [x] Freeze one fixed mirrored Hog 2.6 deck, equal levels and deterministic seed derivation.
-- [x] Implement a two-seat lockstep scheduler for in-process agents.
-- [ ] Implement action parsing, native command execution and requested/actual placement logging.
-- [ ] Implement match termination, draw, engine-fault and unsupported-action handling.
-- [x] Save match manifests, compressed observation/action transitions, and result summaries.
-- [ ] Add a no-op agent and random-legal agent as protocol tests.
+### Match runner and tournament
 
-**Exit gate:** two independently running baseline agents complete paired games; identical configurations reproduce the same engine/action/result logs.
+- [x] Run two agents concurrently at identical simulated decision ticks.
+- [x] Deep-copy each seat observation before passing it to an agent.
+- [x] Apply a shared per-decision response deadline.
+- [x] Separate agent exceptions, invalid actions, engine faults and incomplete matches.
+- [x] Record request/action details, observations, next observations, match manifests and results.
+- [x] Record per-agent latency distributions.
+- [x] Implement round-robin matches with paired seat swaps and deterministic seeds.
+- [x] Implement Glicko-2 with frozen pre-period opponent ratings.
+- [x] Compute a seed-cluster bootstrap interval for aggregate score.
+- [ ] Add canonical result/replay fingerprints and a top-level tournament provenance manifest.
+- [ ] Add tests for match-end callbacks and watchdog cancellation through the complete runner.
+- [ ] Validate rankings, W/D/L counts and rating period semantics on actual CRForge matches.
 
-## Phase 3 — Fair observation and public memory
+### Trajectory dataset and world-model evaluation
 
-- [ ] Define the FAIR observation field registry.
-- [ ] Map crforge seat schema fields to the canonical RoyaleBench schema.
-- [ ] Implement visible event extraction and a bounded recent-event ledger.
-- [ ] Implement opponent-elixir accounting from public plays and integer tick rules.
-- [ ] Implement public card-cycle/possible-hand/queue inference for the mirrored deck.
-- [ ] Include exactness/uncertainty flags and known unsupported income/refund cases.
-- [ ] Add ability/evolution-cycle bookkeeping only for mechanics covered by tests.
-- [ ] Port minimal RoyaleGym memory logic with attribution and an engine-specific adapter.
-- [ ] Add differential tests: compare public-memory values to engine truth in tests only, then assert the agent packet never contains that truth.
-- [ ] Add two-seat mirror tests and deliberate leak tests.
+- [x] Record per-seat observation/action/next-observation transitions during every completed match.
+- [x] Export compressed JSONL train/validation/test splits.
+- [x] Group split assignment by simulator seed so paired seat-swapped matches cannot leak across splits.
+- [x] Record data provenance, split membership, transition counts and SHA-256 hashes.
+- [x] Make gzip output deterministic and prevent accidental overwrite of an existing dataset.
+- [ ] Add an explicit world-model predictor request/response schema.
+- [ ] Implement persistence and simple event/state forecasting baselines.
+- [ ] Implement multi-horizon prediction metrics with missing/unknown field handling.
+- [ ] Add held-out prediction evaluation CLI and report generation.
+- [ ] Verify that dataset split policy and evaluator do not leak match outcomes or future transitions into model inputs.
 
-**Exit gate:** every observation field has a documented source class (visible, inferred, uncertain or privileged); tests demonstrate that no privileged field reaches the FAIR packet.
+## Remaining release work
 
-## Phase 4 — Placement precision and timing
+1. Finish protocol, fairness, subprocess, runner and dataset regression tests.
+2. Implement the minimal world-model forecast interface and baselines without adding training code.
+3. Reconcile FirstLight and Hasty policies: inspect each pinned source, checkpoint availability, licences, input/output semantics and card/version compatibility. If adaptation is not defensible, document them as external references rather than forcing them into v1.
+4. Add benchmark-level manifests, replay hashing, and paper-ready CSV/JSON summaries.
+5. Update installation docs and the benchmark card to reflect only implemented behaviour.
+6. Run the integrated Windows validation script once the implementation is frozen.
+7. Run a preregistered/pinned final tournament with enough independent seeds for meaningful uncertainty.
+8. Generate the paper's result tables, figures and limitations from saved artifacts.
 
-- [ ] Establish the existing crforge 18 × 32 tile-centre baseline.
-- [ ] Measure actual placement resolution needed for tactical cases.
-- [ ] Prototype 36 × 64 half-tile actions by adapting crforge's action schema/mask, using native PlayerCommands placement.
-- [ ] Compare tile-centre, half-tile and fixed-point actions on a fixed battery of placement scenarios.
-- [ ] Verify coordinate transforms for both seats.
-- [ ] Verify requested point, snapped point, native landing point, pending command and execution tick.
-- [ ] Test no-deploy areas, bridges, tower proximity, spells, buildings and special placement rules.
-- [ ] Version the selected action resolution. Do not mix action resolutions in one rating.
+## Final Windows acceptance
 
-**Exit gate:** action-resolution tests establish the exact meaning of every coordinate and show identical semantics for both seats.
+Run once after pulling the completed implementation:
 
-## Phase 5 — Agent SDK and execution backends
+```powershell
+python -m pip install -e ".[dev,engine]"
+python -m pip install -e .\third_party\upstream\crforge\python
+.\scripts\validate_v1.ps1 -SkipBuild
+```
 
-- [ ] Publish a minimal Python Agent protocol.
-- [ ] Implement a persistent local subprocess runner.
-- [ ] Implement a container runner with resource limits and a restricted filesystem.
-- [ ] Implement an HTTP/WebSocket remote-agent adapter.
-- [ ] Implement concurrent requests for both seats.
-- [ ] Implement structured-output validation and malformed-response handling.
-- [ ] Implement agent reset/close lifecycle and per-match memory isolation.
-- [x] Implement no-op, random-legal and deterministic Hog-cycle rule baselines.
-- [ ] Publish a small external-lab example agent that can play a local match without modifying RoyaleBench.
+The integrated script must finish with:
+- Python tests passing.
+- Ruff passing.
+- V1 config validation passing.
+- Real headless CRForge matches completing for both seats.
+- Tournament summary and per-match manifests/results written.
+- Non-empty train, validation and test trajectory splits with a valid dataset manifest.
+- A single validation report recording software versions, engine version/hash, match counts, split counts and output paths.
 
-**Exit gate:** an outside lab can clone RoyaleBench, implement the SDK, and enter a match without changing the engine or tournament code.
+The user's desktop visualizer run establishes that the CRForge desktop runtime starts and supports manual play. It does not substitute for this headless acceptance test. The user's earlier note that some upstream tests failed remains unresolved until their test log is inspected.
 
-## Phase 6 — Latency protocols
+## Release definition
 
-### Strategic-strength / paused-clock
-- [ ] Freeze the game at a decision tick.
-- [ ] Dispatch both agent requests concurrently.
-- [ ] Record response timestamps and wait under a published operational watchdog.
-- [ ] Resume the engine only when both actions or watchdog outcomes are resolved.
-- [ ] Count timeouts and apply the published no-action/forfeit rule.
-- [ ] Verify game ticks and decision counts are identical regardless of agent response duration.
-
-### Real-time / wall-clock
-- [ ] Advance engine on a monotonic wall-clock schedule.
-- [ ] Permit at most one outstanding request per agent.
-- [ ] Timestamp observations and responses.
-- [ ] Discard stale actions and record deadline misses.
-- [ ] Verify that slow agents do not pause or backdate the game.
-
-- [ ] Publish P50/P95/P99 latency, timeout rate, deadline misses, effective actions per game-minute, provider/model ID, token/cost telemetry and planner breakdown.
-
-**Exit gate:** tests with artificial 50 ms, 500 ms, 2 s and delayed responses prove the two modes have the documented behaviour.
-
-## Phase 7 — Tournament and scoring
-
-- [x] Implement paired round-robin schedules with seat swaps and deterministic seeds.
-- [ ] Implement paired side swaps.
-- [ ] Implement baseline opponent pool: no-op, random legal, simple defensive, simple aggressive and frozen learned policy.
-- [x] Implement Glicko-2 with frozen pre-period ratings, 1500/350/0.06 defaults and tau=0.5.
-- [ ] Report W/D/L, uncertainty, crown differential, opponent-specific results and invalid/timeouts.
-- [ ] Keep separate modality, latency and action-resolution leaderboards.
-- [ ] Add run manifests, replay hashes and signed result bundles.
-
-**Exit gate:** tournament results can be regenerated from manifests; leaderboard rankings include uncertainty and are not based on a single raw win percentage.
-
-## Phase 8 — World-model and model-based-agent benchmark
-
-- [ ] Define a predictor API: context/history + candidate action sequence + horizon -> predicted states/events or predicted frames.
-- [ ] Define a distinct opponent-response prediction API.
-- [ ] Build match-level train/validation/hidden-test splits.
-- [ ] Implement open-loop forecasting metrics and multi-horizon evaluation.
-- [ ] Implement paired counterfactual forks from the same initial state.
-- [ ] Implement a fixed MPC candidate generator and model-query budget.
-- [ ] Compare MLP, RSSM, transformer and JEPA-style predictors where available.
-- [ ] Compare direct policy, learned-model planner and privileged oracle-simulator planner.
-- [ ] Report prediction accuracy separately from competitive outcome.
-
-**Exit gate:** an agent can enter with a model and common planner; a forecast-only model can enter prediction evaluation without pretending to be a playing agent.
-
-## Phase 9 — Visual and human interfaces
-
-- [ ] Reuse crforge desktop UI for early local play and debugging.
-- [ ] Define a deterministic render mode for visual agents.
-- [ ] Verify that screenshots show only seat-visible content.
-- [ ] Add fixed frame cadence and image dimensions.
-- [ ] Implement visual agent runner and separate visual leaderboard.
-- [ ] Add a browser-based human-operated interface only after engine/protocol stability.
-- [ ] Add human-vs-agent and human-vs-human calibration studies.
-
-## Phase 10 — Release and research paper
-
-- [ ] Publish complete benchmark specification and benchmark card.
-- [x] Add Windows bootstrap/build scripts and document local game-data provenance.
-- [ ] Publish code, schemas, baselines and reproducible manifests within licence constraints.
-- [ ] Publish fidelity report, unsupported mechanic list and known limitations.
-- [ ] Run multiple seeds and sufficient matches for confidence intervals/rating uncertainty.
-- [ ] Run ablations on public memory, observation cadence, placement resolution, opponent pool and latency.
-- [ ] Verify all claims against logs and artifacts.
-- [ ] Complete third-party and game-asset legal review.
-
-## V1 release definition
-
-V1 is not “all AI models play the game”. V1 is:
-- one pinned engine and data version;
-- one fixed mirrored deck;
-- one stable FAIR structured observation;
-- one documented action-resolution mode;
-- exact public-memory tracking for mechanics covered by tests;
-- baseline scripted/random agents;
-- an external plugin interface;
-- paused-clock competitive tournament;
-- match logs and rating uncertainty.
-
-Real-time, visual, human, multi-deck, world-model forecasting and MPC leaderboards can follow as individually versioned tracks. Do not delay the first usable release for every future feature.
+RoyaleBench v1 is complete only when the core implementation above passes the local integration gates, its tournament protocol is reproducible, the FAIR observation contract is tested, and the paper's claims match the generated evidence. The roadmap intentionally does not require visual, real-time, multi-engine, deck-building or large-scale training infrastructure.
