@@ -78,6 +78,8 @@ class V1Config:
 
     @classmethod
     def from_mapping(cls, raw: dict[str, Any]) -> V1Config:
+        if raw.get("version", 1) != 1:
+            raise ValueError(f"unsupported RoyaleBench configuration version: {raw.get('version')!r}")
         match = raw.get("match", {})
         profiles = raw.get("decision_profiles", {})
         engine = raw.get("engine", {})
@@ -85,6 +87,8 @@ class V1Config:
             raise ValueError(
                 "configuration sections 'engine', 'match' and 'decision_profiles' must be mappings"
             )
+        if engine.get("name", "crforge") != "crforge":
+            raise ValueError("v1 requires the CRForge engine")
         deck_raw = match.get("deck", list(V1_DECK))
         if not isinstance(deck_raw, list):
             raise ValueError("match.deck must be a list")
