@@ -198,6 +198,23 @@ class SubprocessAgent:
             raise ValueError("agent response action must be a JSON object")
         return action
 
+    def finish(self, result: dict[str, Any]) -> None:
+        """Send a seat-scoped match result to the worker before shutdown."""
+        if self._process is None:
+            return
+        payload = {
+            **result,
+            "agent": self.name,
+            "seat": int(self._match_info.get("seat", -1)),
+        }
+        self._send(
+            {
+                "schema": _AGENT_EVENT_SCHEMA,
+                "type": "end",
+                "result": payload,
+            }
+        )
+
     def _terminate(self) -> None:
         process = self._process
         self._process = None
