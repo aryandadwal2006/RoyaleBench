@@ -18,7 +18,7 @@ git pull origin main
 .\scripts\validate_v1.ps1
 ```
 
-The script performs the complete setup and acceptance path. It resolves \`JAVA_HOME\` from the Java 21 executable on PATH, checks for \`jvm.dll\`, and verifies that JPype can locate the JVM before running the native adapter tests. If Java is exposed through a launcher that prevents automatic discovery, set \`$env:JAVA_HOME\` to the Java 21 JDK root before invoking the script.
+The script performs the complete setup and acceptance path. It resolves `JAVA_HOME` from the Java 21 executable on PATH, checks for `jvm.dll`, and verifies that JPype can locate the JVM before running the native adapter tests. If Java is exposed through a launcher that prevents automatic discovery, set `$env:JAVA_HOME` to the Java 21 JDK root before invoking the script.
 
 1. Synchronizes and verifies the pinned upstream submodules.
 2. Builds the CRForge `:env:installDist` runtime distribution and game tables.
@@ -65,6 +65,8 @@ GitHub Actions now runs a Windows job that parses all three PowerShell scripts a
 The observed Windows run used Python 3.14.5, Java 21.0.13 and the `-SkipBuild` switch. The pinned CRForge `:env:test` task completed with `BUILD SUCCESSFUL`; the Python suite reported 114 passed and 3 skipped; Ruff and `config-check` passed. The three skipped tests were RoyaleBench's native adapter tests in `tests/test_crforge_native.py`, because the CRForge install distribution was absent. The headless tournament then stopped before starting a match because no JARs existed in `env/build/install/env/lib`.
 
 No tournament match, trajectory dataset or forecast was produced by that partial run. It does not establish full v1 acceptance. Run the first-time command above without `-SkipBuild`.
+
+A subsequent full-build attempt on 2026-11-18 created the install distribution (six JAR files), generated the pinned game tables, and passed CRForge's Gradle test task. In the Python suite, 114 tests passed but the three native adapter tests failed because JPype could not find `jvm.dll`, even though the Java 21 command-line executable worked. The updated validation script now resolves and checks the Java 21 JDK home, sets `JAVA_HOME` for child processes, and runs a JPype JVM-path preflight before pytest. Full v1 acceptance remains pending a successful rerun.
 
 ## Outputs
 
