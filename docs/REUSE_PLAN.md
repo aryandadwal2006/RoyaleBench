@@ -121,6 +121,20 @@ These remain research references, not v1 dependencies.
 
 Prior discussions of architecture are not sufficient to establish a source-code licence. Before copying any code, inspect the exact upstream LICENSE, NOTICE and file headers.
 
+## 5.1 External policy compatibility gate for v1
+
+The generic RoyaleBench JSONL subprocess adapter is a transport, not an automatic compatibility layer. An external policy can enter the canonical CRForge leaderboard only if its observation semantics, action semantics, game version, deck and model weights can be mapped without changing the task.
+
+| Candidate | Existing environment/policy | Compatibility with CRForge v1 | Decision |
+|---|---|---|---|
+| FirstLight_CR | Native offline engine, replay reconstruction and recurrent policy/checkpoint workflow; documented engine target is 15.535.13 / content 15.535.86 in the reviewed README. Its JSONL lifecycle is not ObservationV1. | Different game/data target and simulator state/action contract. No verified lossless ObservationV1 adapter or compatible checkpoint has been established. A clear root source licence was not verified in this review. | Do not vendor or place on the official CRForge leaderboard yet. Reassess only after licensing, checkpoint and semantic compatibility checks. |
+| Hasty-CR | Independent 50 ms Python simulator, fixed Hog 2.6 setup and PPO/behaviour-cloning workflow. Its policy uses its own simulator's observation/action encoding. | Similar deck archetype does not make the state transition, observation or action spaces equivalent. A checkpoint trained on Hasty-CR is not a CRForge policy without a validated observation/action adapter or retraining. | Keep as an external simulator/policy research reference. Do not pool its results with CRForge ratings. |
+| ClashAI | Replay imitation/PPO research built around a different simulator interface; checkpoint and dataset availability are not established in the reviewed repository. | No drop-in ObservationV1 agent or reproducible checkpoint adapter is established. | Methodology reference only until licence, artefacts and semantics are verified. |
+
+A technically valid integration path is to write a small external worker that consumes RoyaleBench ObservationV1 and emits ActionV1, while internally running a candidate model. This only works if the model's native input representation can be reconstructed from the public ObservationV1 without hidden state or unsupported assumptions. If the model requires the original simulator's privileged state, action IDs, coordinate system or game mechanics, it is not compatible.
+
+The external worker protocol must not be used to disguise an engine mismatch. A policy trained on Hasty-CR or FirstLight's own engine may be evaluated in a separately named engine-specific track, but not against CRForge-trained policies on the canonical leaderboard.
+
 ## 6. Third-party notices and source provenance
 
 Create and maintain:
