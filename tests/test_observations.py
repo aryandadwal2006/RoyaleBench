@@ -159,3 +159,24 @@ def test_cycle_inference_reverses_crforge_newest_first_play_rows():
     assert cycle["hand_cards"] == ["Cannon", "Fireball", "HogRider", "Skeletons"]
     # Keep the raw public-play presentation order newest-first for agent consumers.
     assert observation["opponent"]["recent_plays"][0]["card"] == "Log"
+
+def test_observation_is_noninterfering_with_unexposed_hidden_state_fields():
+    vector = FakeVector()
+    mask = np.zeros(vector.schema.first_ability + 2, dtype=np.uint8)
+    raw_a = raw_seat_view()
+    raw_b = raw_seat_view()
+    raw_a["true_enemy_elixir"] = np.array([10_000])
+    raw_a["enemy_hand"] = np.array([0, 1, 2, 3])
+    raw_b["true_enemy_elixir"] = np.array([99_000])
+    raw_b["enemy_hand"] = np.array([4, 5, 6, 7])
+
+    first = build_observation(
+        vector, raw_a, mask, match_id="noninterference", decision_id=0, seat=0
+    )
+    second = build_observation(
+        vector, raw_b, mask, match_id="noninterference", decision_id=0, seat=0
+    )
+    assert first == second
+    assert first["opponent"]["estimated_elixir_scaled"] == 42_000
+    assert "enemy_hand" not in first["opponent"]
+    assert "true_enemy_elixir" not in first["opponent"]
