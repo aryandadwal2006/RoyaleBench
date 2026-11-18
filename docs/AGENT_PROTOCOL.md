@@ -1,6 +1,6 @@
 # Agent Protocol v1 (Draft)
 
-**Status:** Contract draft. Field-level ObservationV1 is not frozen until the crforge adapter and fair-observation tests exist.
+**Status:** Implemented v1 contract, pending final local CRForge acceptance. Machine-readable schemas live in `schemas/`; the JSONL subprocess transport is implemented by `SubprocessAgent`.
 
 This document defines the interface between RoyaleBench and a lab-provided agent. The benchmark owns the engine, observations, time, actions, tournament and scoring. The lab owns its model and agent logic.
 
@@ -22,7 +22,7 @@ All forms implement the same logical lifecycle. An agent must not receive engine
 
 **End match:** the runner sends result metadata and permits the agent to flush private diagnostics. Diagnostics do not affect the score.
 
-The agent process may retain private recurrent state between decisions, but that state is reset between matches.
+The agent process may retain private recurrent state between decisions. RoyaleBench starts a fresh subprocess per match, so recurrent state is reset at the match boundary.
 
 ## 3. Structured-state request
 
@@ -37,7 +37,7 @@ A structured request contains:
 - playable hand-slot summary and available ability buttons;
 - execution mode and deadline metadata.
 
-The exact field registry will be published after mapping crforge's schema and event stream. Do not hard-code engine vocabulary indices into agent code; names and catalogue digests accompany the match manifest.
+The field registry is represented by `schemas/observation.v1.schema.json` and the converter in `src/royalebench/observations.py`. Card, entity and buff identifiers are exposed as names where possible; engine vocabulary indices remain an implementation detail. Engine/data version and vocabulary hashes are recorded in the observation and match manifest.
 
 ### Public memory
 
@@ -96,8 +96,8 @@ Example play action:
   "type": "play",
   "hand_slot": 1,
   "expected_card": "Cannon",
-  "x_tile": 8.25,
-  "y_tile": 17.75
+  "x_tile": 8.5,
+  "y_tile": 17.5
 }
 
 The example illustrates the coordinate convention; the exact allowed coordinate increments are set by the match's action_resolution field. For the existing crforge baseline, only 18 × 32 tile-centre choices exist. Half-tile or fixed-point choices require a tested downstream schema/mask extension and a new action-resolution identifier.
@@ -106,7 +106,54 @@ The expected_card field binds a play request to the card that occupied that hand
 
 The runner must not replace an invalid action with a different card or a strategically better coordinate. Native engine placement search may relocate a tap exactly as the engine's player-command path does; both requested and actual landing points are logged. This is game semantics, not benchmark strategic assistance.
 
-## 6. LLM usage
+## 6. Local JSONL subprocess transport
+
+The reference implementation is `royalebench.agents.SubprocessAgent`. It launches one persistent child process per match. The process receives JSON objects, one per stdin line. Standard output is reserved for protocol responses; send logs and diagnostics to standard error.
+
+The process protocol uses these messages:
+
+**Start event** (sent once after launch):
+```json
+{
+  "schema": "royalebench.agent-event.v1",
+  "type": "start",
+  "match_info": {
+    "match_id": "example-match",
+    "seat": 0
+  }
+}
+```
+
+The worker must acknowledge startup with:
+```json
+{"schema":"royalebench.agent-event.v1","type":"ready"}
+```
+
+**Decision request**:
+```json
+{
+  "schema": "royalebench.agent-request.v1",
+  "type": "act",
+  "request_id": "example-match:0:0",
+  "decision_id": 0,
+  "observation_hash": "64-character-sha256",
+  "observation": {}
+}
+```
+
+The worker returns an `AgentResponseV1` object using the response schema shown above. The action itself must satisfy `ActionV1`.
+
+**End event**: after a completed or void match, the runner sends `royalebench.agent-event.v1` with `type: "end"` and seat-scoped result metadata. No response is expected.
+
+**Close event**: the runner sends `royalebench.agent-event.v1` with `type: "close"`. The worker should exit cleanly. No response is expected.
+
+The subprocess adapter enforces a startup timeout, decision timeout and shutdown grace period. A malformed, stale or timed-out worker response invalidates the match. Credentials are not inherited wholesale from the parent environment: only a small runtime-variable allowlist is inherited. Pass only credentials the participant explicitly intends that worker to receive through the adapter's `env` argument.
+
+The subprocess boundary is a process boundary, **not a complete sandbox**. The child runs with the same user permissions and may have filesystem or network access. Use a separately configured container or OS sandbox for untrusted code submitted by third parties. The in-process Python Agent interface is intended for trusted built-in agents.
+
+A minimal working policy is provided at `examples/agents/hog_cycle_jsonl.py`.
+
+## 7. LLM usage
 
 The intended LLM interface is one decision call per benchmark observation:
 - provide the compact current state snapshot, public memory, recent visible events and action schema;
