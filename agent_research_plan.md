@@ -12,7 +12,7 @@
 
 The first RoyaleBench paper should establish the evaluation infrastructure and the scientific methodology for measuring strategic competence. This project is the separate agent-development programme that uses that infrastructure to build the strongest possible Clash Royale-playing system.
 
-The ambition is an eventual public human-versus-agent challenge, with Mohammed Light as an aspirational target if he is willing and the match can be arranged under agreed rules. Beating one named player is not guaranteed, and a single match would not establish that an agent is generally superhuman. The target is to develop a reproducibly strong agent, then evaluate it against multiple high-level opponents and, if possible, conduct a properly controlled series against an elite professional.
+The ambition is an eventual public human-versus-agent challenge, with Mohamed Light as an aspirational target if he is willing and the match can be arranged under agreed rules. Beating one named player is not guaranteed, and a single match would not establish that an agent is generally superhuman. The target is to develop a reproducibly strong agent, then evaluate it against multiple high-level opponents and, if possible, conduct a properly controlled series against an elite professional.
 
 Do not distort the benchmark paper to advertise an unfinished agent. The second paper should stand on actual competitive results, not on an ambition or demo.
 
@@ -38,7 +38,7 @@ Use a staged definition rather than one viral match:
 2. **Strategic competence:** beats strong transparent heuristics, imitation policies and independently trained RL opponents.
 3. **Population robustness:** retains high performance against a diverse, frozen league rather than one exploitable opponent.
 4. **Expert-level performance:** competes evenly with strong human players under a controlled ruleset and repeated series.
-5. **Elite challenge:** achieves a statistically persuasive result against one or more top professional players, including Mohammed Light if a mutually agreed challenge is possible.
+5. **Elite challenge:** achieves a statistically persuasive result against one or more top professional players, including Mohamed Light if a mutually agreed challenge is possible.
 
 A "Deep Blue moment" should mean a well-documented, independently witnessed competition with a strong protocol, not an isolated cherry-picked game.
 
@@ -299,7 +299,7 @@ Before any elite challenge:
 - pay/compensate external participants where appropriate;
 - publish only replays or personal information that participants consent to share.
 
-For a named professional such as Mohammed Light:
+For a named professional such as Mohamed Light:
 - contact through legitimate public/professional channels;
 - offer a fixed, transparent evaluation protocol;
 - let the player choose or approve the challenge rules;
