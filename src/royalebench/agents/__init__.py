@@ -1,10 +1,9 @@
-"""Built-in and adapter-backed RoyaleBench agents."""
+"""Built-in policies and execution adapters for RoyaleBench agents."""
 
 from .base import Agent, MatchInfo
 from .baselines import HogCycleAgent, NoOpAgent, RandomLegalAgent
 from .openai_compatible import OpenAICompatibleAgent
 from .subprocess_agent import SubprocessAgent
-from .subprocess_agent import AgentProcessError, JsonlSubprocessAgent
 
 __all__ = [
     "Agent",
@@ -13,6 +12,5 @@ __all__ = [
     "NoOpAgent",
     "RandomLegalAgent",
     "OpenAICompatibleAgent",
-    "AgentProcessError",
-    "JsonlSubprocessAgent",
+    "SubprocessAgent",
 ]
