@@ -2,7 +2,7 @@
 
 **Contract:** ObservationV1  
 **Canonical source:** CRForge `VectorEnv` seat observation at commit `fa5959055c590a493d62c8dbc804e602832d08a6`  
-**Status:** Converter-level noninterference tests exist; final two-seat native-engine audit remains an acceptance gate.
+**Status:** Converter-level and native-engine audit tests are implemented and wired into final validation; none of the new native tests has yet been executed locally.
 
 ## Trust boundary
 
@@ -36,19 +36,28 @@ ObservationV1 must not contain:
 
 ## Tests currently present
 
+### RoyaleBench tests
+
 - `test_observation_exposes_normalized_elixir_but_not_hidden_state` checks the public observation shape and absence of explicit hidden-state keys.
 - `test_observation_is_noninterfering_with_unexposed_hidden_state_fields` changes synthetic hidden fields while holding the seat view fixed and asserts ObservationV1 is unchanged.
 - `test_observation_keeps_crforge_raw_scaled_values_for_audit` preserves raw public elixir counts alongside normalized values.
 - `test_cycle_is_uncertain_before_four_public_card_plays` and related tests ensure the opponent's hand is not inferred before the public play ledger supports it.
 
-These are converter and inference tests. They do not prove that every CRForge entity visibility rule is correct or that every v1 match mechanic is faithfully simulated.
+Additional native tests are now present:
+
+- `tests/test_crforge_native.py::test_seat_frames_are_half_turn_transforms_on_native_tower_entities` checks the actual reset observations for both physical king towers in the two seat frames.
+- `tests/test_crforge_native.py::test_unseen_opponent_deck_does_not_change_the_other_seats_initial_view` resets the same deterministic match with two different, unobserved opponent decks and compares the receiving seat's entire observation and action mask.
+- `tests/test_crforge_native.py::test_hog_v1_public_enemy_elixir_matches_native_truth_during_play` compares the seat-visible opponent-elixir count against CRForge's underlying side state over legal actions in the fixed v1 deck. The native truth is read only by the test, never passed into an agent.
+- Adapter startup checks the effective native configuration, mask/id versions and deployment delay. Reset checks the actual decks, per-card levels, mirrored tower HP and initial public-elixir values.
+
+The acceptance script now runs the pinned CRForge `:env:test` suite before the RoyaleBench Python suite. That upstream suite includes checks for per-seat coordinate transforms and entity visibility, tunnelling trails, hidden spell aim, unrevealed building commands, and enemy-elixir accounting across ordinary spends, visible gains, champion refunds and terminal ticks. In particular, it contains `SeatObservationTest.everyRowReadsTheCoreAndTheTwoSeatsSeeItHalfATurnApart`, `SeatObservationTest.anEnemyTunnellerShowsItsTrailFromTheRunAndItsCardAndPointOnlyWhereItComesUp`, `SeatObservationTest.anEnemySpellFromTheKingShowsItsCardAtTheRunAndItsPointWhereItLands`, `SeatObservationTest.anEnemysHiddenBuildingShowsNothingOfItsCommandAndStaysOnTheScreenLowered`, and the relevant cases in `EnemyElixirCountTest`.
+
+These tests are implemented and included in the final validation path, but have not been run in this working session. A passed result is not yet established.
 
 ## Remaining native acceptance checks
 
-1. Run both seats through the actual pinned CRForge build and verify the seat-frame transform for every exposed entity and placement coordinate.
-2. Compare `enemy_elixir` with CRForge's `EnemyElixirCountTest` under the exact v1 deck, including start, regeneration, ordinary card costs, command refusals and terminal ticks.
-3. Verify that no champion, refund-producing card, or unsupported mechanic is enabled by the actual config/data.
-4. Mutate one seat's hidden hand/queue/elixir while preserving the other seat's seat-visible state in a controlled engine test, and verify the receiving ObservationV1 is unchanged.
-5. Inspect entity overflow and visibility edge cases, including tunnelling, unrevealed plays, projectiles and area effects.
+1. Execute `.\scripts\validate_v1.ps1` once against the pinned Windows build; reconcile any failures rather than weakening the gates.
+2. Add a direct native-state mutation test for hidden hand/queue/elixir while preserving the seat-visible state, if the engine exposes a safe and isolated fixture for such mutation.
+3. Exercise entity overflow deliberately at the v1 adapter boundary and record its handling; retain upstream coverage for tunnelling, projectiles, areas and partially revealed plays.
 
-Do not mark the native FAIR audit complete based only on Python converter tests.
+Do not mark the native FAIR audit complete until the native and RoyaleBench integration tests pass on the pinned data version.
