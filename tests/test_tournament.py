@@ -22,7 +22,7 @@ class DrawAgent:
 
 class SeatZeroWinnerEngine:
     def __init__(self, ticks):
-        self.config = SimpleNamespace(deck=("Cannon",))
+        self.config = SimpleNamespace(deck=("Cannon",), card_level=11, tower_level=11, max_ticks=9000, mask_version=1)
         self.metadata = {"fingerprint": "test"}
         self.tick = 0
 
