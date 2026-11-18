@@ -239,8 +239,14 @@ Write-Host "=== Headless paired tournament ==="
 if ($LASTEXITCODE -ne 0) { throw "One or more tournament matches failed." }
 
 Write-Host "=== External JSONL agent integration tournament ==="
-$WorkerCommand = ConvertTo-Json -Compress @($Python, "examples/agents/hog_cycle_jsonl.py")
-& $Python -m royalebench tournament --profile $Profile --agents "random-legal-v1,external-hog" --external-agent-name "external-hog" --external-agent-command $WorkerCommand --external-agent-cwd $Root --seeds $Seeds --output $ExternalTournamentRoot
+# Pass argv through a UTF-8 JSON file instead of a native-command argument.
+# Windows PowerShell 5.1 can strip the embedded JSON quotes when forwarding
+# a string argument to a native executable.
+$WorkerCommandPath = Join-Path $ValidationRoot "external-agent-command.json"
+$WorkerCommandJson = ConvertTo-Json -InputObject ([string[]]@($Python, "examples/agents/hog_cycle_jsonl.py")) -Compress
+$Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+[System.IO.File]::WriteAllText($WorkerCommandPath, $WorkerCommandJson, $Utf8NoBom)
+& $Python -m royalebench tournament --profile $Profile --agents "random-legal-v1,external-hog" --external-agent-name "external-hog" --external-agent-command-file $WorkerCommandPath --external-agent-cwd $Root --seeds $Seeds --output $ExternalTournamentRoot
 if ($LASTEXITCODE -ne 0) { throw "External JSONL agent tournament failed." }
 
 Write-Host "=== Automatic trajectory dataset ==="
@@ -316,6 +322,7 @@ $Report = [ordered]@{
     output = @{
         tournament = $TournamentRoot
         external_agent_tournament = $ExternalTournamentRoot
+        external_agent_command = $WorkerCommandPath
         dataset = $DatasetRoot
         forecast_report = $ForecastReportPath
         pytest_junit_report = $PytestReportPath
