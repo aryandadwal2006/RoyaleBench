@@ -46,7 +46,7 @@ class FakeVector:
 def raw_seat_view():
     raw = {
         "hand_card": np.array([0, 1, 2, 3]),
-        "hand_cost": np.array([30_000, 40_000, 10_000, 20_000]),
+        "hand_cost": np.array([3, 4, 1, 2]),
         "hand_pending": np.zeros(4, dtype=np.int32),
         "hand_form": np.zeros(4, dtype=np.int32),
         "deck": np.arange(8),
