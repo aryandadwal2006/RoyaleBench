@@ -5,6 +5,7 @@ from __future__ import annotations
 import contextlib
 import copy
 import gzip
+import io
 import json
 import statistics
 import time
@@ -199,7 +200,15 @@ class MatchRunner:
             with (
                 ThreadPoolExecutor(max_workers=2, thread_name_prefix="royalebench-agent") as pool,
                 (
-                    gzip.open(trajectory_path, "wt", encoding="utf-8")
+                    io.TextIOWrapper(
+                        gzip.GzipFile(
+                            filename=str(trajectory_path),
+                            mode="wb",
+                            mtime=0,
+                        ),
+                        encoding="utf-8",
+                        newline="\\n",
+                    )
                     if trajectory_path is not None
                     else _null_writer()
                 ) as log,
