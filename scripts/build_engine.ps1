@@ -40,12 +40,16 @@ if ($LASTEXITCODE -ne 0) { throw "Could not install RoyaleBench dependencies." }
 if ($LASTEXITCODE -ne 0) { throw "Could not install the pinned crforge-env Python package." }
 
 $Install = Join-Path $Upstream "env\build\install\env"
+$InstallLib = Join-Path $Install "lib"
+$Jars = @(Get-ChildItem -Path $InstallLib -Filter "*.jar" -File -ErrorAction SilentlyContinue)
 $Tables = Join-Path $HOME ".crforge\tables\16.635.8"
-if (-not (Test-Path $Install)) { throw "CRForge env distribution not found at $Install" }
+if (-not (Test-Path $Install) -or $Jars.Count -eq 0) {
+    throw "CRForge env distribution is missing or has no JARs under $InstallLib"
+}
 if (-not (Test-Path $Tables)) { throw "CRForge game tables not found at $Tables" }
 
 Write-Host ""
 Write-Host "CRForge environment ready."
-Write-Host "Install: $Install"
+Write-Host "Install: $Install ($($Jars.Count) JAR files)"
 Write-Host "Tables:  $Tables"
 Write-Host "Next: .\scripts\validate_v1.ps1 -SkipBuild"
