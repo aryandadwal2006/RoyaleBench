@@ -172,7 +172,14 @@ def _score_pair(
     tower_paths = [
         (side, "towers", tower, "hp")
         for side in ("own", "opponent")
-        for tower in ("own_king", "own_left", "own_right", "enemy_king", "enemy_left", "enemy_right")
+        for tower in (
+            "own_king",
+            "own_left",
+            "own_right",
+            "enemy_king",
+            "enemy_left",
+            "enemy_right",
+        )
     ]
     elixir_paths = [
         ("own", "elixir"),
