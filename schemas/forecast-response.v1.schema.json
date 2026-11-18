@@ -10,6 +10,6 @@
     "request_id": {"type": "string", "minLength": 1},
     "observation_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "horizon_ticks": {"type": "integer", "minimum": 1},
-    "predicted_observation": {"$ref": "observation.v1.schema.json"}
+    "predicted_observation": {"$ref": "urn:royalebench:observation:v1"}
   }
 }
