@@ -92,7 +92,7 @@ def _assign_splits(
     ordered = sorted(
         sources,
         key=lambda source: hashlib.sha256(
-            f"{seed}:{source.match_id}".encode("utf-8")
+            f"{seed}:{source.match_id}".encode()
         ).hexdigest(),
     )
     validation_count = max(1, round(len(ordered) * validation_fraction))

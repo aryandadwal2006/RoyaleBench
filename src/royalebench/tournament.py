@@ -15,7 +15,6 @@ from royalebench.agents.base import Agent
 from royalebench.ratings.glicko2 import PeriodGame, Rating, update_rating_period
 from royalebench.runner import MatchResult, MatchRunner
 
-
 AgentFactory = Callable[[], Agent]
 EngineFactory = Callable[[int], Any]
 

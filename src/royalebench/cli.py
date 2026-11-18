@@ -23,12 +23,10 @@ def _root() -> Path:
 
 def _engine_paths(config: Any) -> tuple[Path, Path]:
     root = _root()
-    install = Path(
-        os.environ.get(
-            "ROYALEBENCH_CRFORGE_INSTALL",
-            str(root / "third_party" / "upstream" / "crforge" / "env" / "build" / "install" / "env"),
-        )
+    default_install = (
+        root / "third_party" / "upstream" / "crforge" / "env" / "build" / "install" / "env"
     )
+    install = Path(os.environ.get("ROYALEBENCH_CRFORGE_INSTALL", str(default_install)))
     tables = Path(
         os.environ.get(
             "ROYALEBENCH_CRFORGE_TABLES",
@@ -177,8 +175,12 @@ def build_parser() -> argparse.ArgumentParser:
     tournament.add_argument("--output", default="results/tournament")
     tournament.set_defaults(handler=_cmd_tournament)
 
-    dataset = sub.add_parser("dataset", help="export match-level trajectory train/val/test splits")
-    dataset.add_argument("--matches", required=True, help="directory containing match result folders")
+    dataset = sub.add_parser(
+        "dataset", help="export match-level trajectory train/val/test splits"
+    )
+    dataset.add_argument(
+        "--matches", required=True, help="directory containing match result folders"
+    )
     dataset.add_argument("--output", default="results/dataset")
     dataset.add_argument("--split-seed", type=int, default=20261118)
     dataset.add_argument("--validation-fraction", type=float, default=0.1)

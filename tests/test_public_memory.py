@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from royalebench.public_memory import derive_opponent_cycle
 
-
-DECK = ["Cannon", "Fireball", "HogRider", "IceGolem", "IceSpirit", "Musketeer", "Skeletons", "TheLog"]
+DECK = [
+    "Cannon", "Fireball", "HogRider", "IceGolem",
+    "IceSpirit", "Musketeer", "Skeletons", "TheLog",
+]
 
 
 def rows(*cards):

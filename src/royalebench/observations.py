@@ -8,7 +8,6 @@ import numpy as np
 
 from royalebench.public_memory import derive_opponent_cycle
 
-
 OBSERVATION_SCHEMA = "royalebench.observation.v1"
 
 

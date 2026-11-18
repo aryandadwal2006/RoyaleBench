@@ -10,9 +10,9 @@ import urllib.error
 import urllib.request
 from typing import Any
 
-
 _SYSTEM_PROMPT = """You are an agent competing in the RoyaleBench v1 offline Clash Royale simulator.
-Return exactly one JSON object matching ActionV1. Do not return markdown, explanations, or extra fields.
+Return exactly one JSON object matching ActionV1.
+Do not return markdown, explanations, or extra fields.
 
 Rules:
 - Use only the supplied observation. It contains player-visible state, not hidden simulator state.

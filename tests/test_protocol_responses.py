@@ -3,7 +3,6 @@ import pytest
 from royalebench.protocol.actions import ActionResolution, PlayAction
 from royalebench.protocol.responses import AgentResponse, ResponseMismatchError
 
-
 REQUEST_ID = "req-0001"
 DECISION_ID = 42
 OBSERVATION_HASH = "a" * 64
