@@ -46,6 +46,8 @@ Visual agents, real-time wall-clock competition, deck construction, alternate-en
 - [x] Keep native placement search and command delay in CRForge.
 - [x] Document field-level FAIR information provenance and converter-level hidden-field noninterference tests.
 - [x] Add native CRForge integration tests for seat-frame transforms, unseen-opponent-deck noninterference and v1 enemy-elixir accounting.
+- [x] Void matches if either seat reports omitted visible entities (`entity_overflow > 0`); reject missing or invalid overflow metadata.
+- [x] Test match voiding for overflow in reset and later observations.
 - [x] Wire the pinned upstream `:env:test` observation/elixir suite into final Windows acceptance.
 - [ ] Execute the native and RoyaleBench integration suites against the pinned local CRForge build.
 - [ ] Add a direct hidden hand/queue/elixir mutation fixture, if safely exposed by the native engine.
@@ -97,7 +99,7 @@ Visual agents, real-time wall-clock competition, deck construction, alternate-en
 ## Remaining release work
 
 1. Add a documented learned-predictor adapter entry point and broaden forecasting metrics to entity identity, movement and event timing where CRForge exposes reliable stable identifiers.
-2. Execute and reconcile the native two-seat FAIR and elixir tests; add an explicit entity-overflow acceptance test.
+2. Execute and reconcile the native two-seat FAIR and elixir tests.
 3. Reconcile FirstLight and Hasty policies: inspect pinned source, checkpoint availability, licences, input/output semantics and card/version compatibility. If adaptation is not defensible, document them as external references rather than forcing them into v1.
 4. Add canonical replay/result fingerprints and paper-ready CSV/JSON summaries.
 5. Add container isolation before accepting untrusted public submissions; the current subprocess boundary is not a security sandbox.
