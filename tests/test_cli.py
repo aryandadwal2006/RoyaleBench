@@ -84,3 +84,7 @@ def test_tournament_cli_rejects_non_array_external_command():
                 '"python worker.py"',
             ]
         )
+
+def test_tournament_rejects_duplicate_agent_identifiers():
+    with pytest.raises(ValueError, match="must be unique"):
+        _agent_factories(["llm", "llm"])
