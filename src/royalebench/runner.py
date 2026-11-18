@@ -47,6 +47,30 @@ class AgentExecutionError(RuntimeError):
     """An agent raised an exception or returned an invalid response."""
 
 
+class EngineObservationError(RuntimeError):
+    """The engine returned an incomplete or malformed seat observation."""
+
+
+def _require_complete_observations(observations: tuple[dict[str, Any], dict[str, Any]]) -> None:
+    """Do not score a match when the engine has omitted visible entities from a seat view."""
+    if len(observations) != 2:
+        raise EngineObservationError(
+            f"engine returned {len(observations)} seat observations; exactly two are required"
+        )
+    for seat, observation in enumerate(observations):
+        try:
+            overflow = int(observation.get("game", {}).get("entity_overflow", 0))
+        except (AttributeError, TypeError, ValueError) as exc:
+            raise EngineObservationError(
+                f"seat {seat} has no valid entity_overflow observation field"
+            ) from exc
+        if overflow != 0:
+            raise EngineObservationError(
+                f"seat {seat} observation omitted {overflow} visible entities; "
+                "the match is void because the state is incomplete"
+            )
+
+
 def _agent_manifest_entry(agent: Agent, seat: int) -> dict[str, Any]:
     """Return auditable agent configuration without copying secret values."""
     cls = type(agent)
@@ -255,6 +279,7 @@ class MatchRunner:
                     ) from exc
 
             observations = self.engine.reset(seed, match_id=match_id)
+            _require_complete_observations(observations)
             status = "completed"
 
             with (
@@ -357,6 +382,7 @@ class MatchRunner:
                     illegal_counts[1] += int(step.info.get("illegal_1", 0))
 
                     next_observations = (self.engine.observe(0), self.engine.observe(1))
+                    _require_complete_observations(next_observations)
                     if log is not None:
                         for record in decision_records:
                             seat = record["seat"]
@@ -403,6 +429,10 @@ class MatchRunner:
                     status = "decision_limit"
                     outcome = "void"
 
+        except EngineObservationError as exc:
+            status = "engine_fault"
+            outcome = "void"
+            fault = {"kind": "observation_overflow", "message": str(exc)}
         except AgentExecutionError as exc:
             status = "agent_error"
             outcome = "void"
