@@ -13,7 +13,11 @@ from royalebench.agents.baselines import HogCycleAgent, NoOpAgent, RandomLegalAg
 from royalebench.config import V1_CONTENT_SHA, load_config
 from royalebench.dataset import build_dataset
 from royalebench.engine.crforge import CrforgeBattle
-from royalebench.forecasting import PersistenceForecaster, evaluate_forecaster, write_forecast_report
+from royalebench.forecasting import (
+    PersistenceForecaster,
+    evaluate_forecaster,
+    write_forecast_report,
+)
 from royalebench.runner import MatchRunner
 from royalebench.tournament import TournamentRunner
 
@@ -99,7 +103,9 @@ def _agent_factories(
     selected: dict[str, Any] = {}
     for name in names:
         if not name or name != name.strip():
-            raise ValueError("agent names in --agents must be non-empty and have no surrounding spaces")
+            raise ValueError(
+                "agent names in --agents must be non-empty and have no surrounding spaces"
+            )
         if name == "llm":
             from royalebench.agents.openai_compatible import OpenAICompatibleAgent
 
