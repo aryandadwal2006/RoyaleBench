@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aryandadwal2006.github.io/RoyaleBench/schemas/forecast-response.v1.schema.json",
+  "title": "RoyaleBench ForecastResponseV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "request_id", "observation_hash", "horizon_ticks", "predicted_observation"],
+  "properties": {
+    "schema": {"const": "royalebench.forecast-response.v1"},
+    "request_id": {"type": "string", "minLength": 1},
+    "observation_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "horizon_ticks": {"type": "integer", "minimum": 1},
+    "predicted_observation": {"$ref": "observation.v1.schema.json"}
+  }
+}
