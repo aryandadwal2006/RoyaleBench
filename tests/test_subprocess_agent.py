@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import os
+import json
 import sys
 
 import pytest
@@ -34,9 +34,8 @@ def observation() -> dict:
     }
 
 
-def test_subprocess_agent_round_trip_and_telemetry(monkeypatch):
-    sentinel = "ROYALEBENCH_TEST_PARENT_SECRET"
-    monkeypatch.setenv(sentinel, "must-not-be-inherited")
+def test_subprocess_agent_round_trip_and_secret_filtering(monkeypatch):
+    monkeypatch.setenv("ROYALEBENCH_TEST_PARENT_SECRET", "must-not-be-inherited")
     action_block = """
 print(json.dumps({
     'schema': 'royalebench.agent-response.v1',
@@ -61,13 +60,9 @@ print(json.dumps({
 
 
 def test_subprocess_agent_enforces_timeout_and_terminates_child():
-    action_block = """
-import time
-time.sleep(10)
-"""
     agent = SubprocessAgent(
         "sleeping-test",
-        [sys.executable, "-u", "-c", _worker_body(action_block)],
+        [sys.executable, "-u", "-c", _worker_body("import time\ntime.sleep(10)")],
         timeout_s=0.05,
         shutdown_timeout_s=0.1,
     )
@@ -102,13 +97,38 @@ print(json.dumps({
 
 
 def test_subprocess_agent_requires_startup_handshake():
-    child = "import time; time.sleep(10)"
     agent = SubprocessAgent(
         "no-handshake",
-        [sys.executable, "-u", "-c", child],
+        [sys.executable, "-u", "-c", "import time; time.sleep(10)"],
         startup_timeout_s=0.05,
         shutdown_timeout_s=0.1,
     )
     with pytest.raises(TimeoutError, match="response timeout"):
         agent.reset({"match_id": "subprocess-match", "seat": 0})
     assert agent._process is None
+
+
+def test_subprocess_agent_receives_match_end_event(tmp_path):
+    result_path = tmp_path / "end-result.json"
+    worker = f"""
+import json, sys
+result_path = {str(result_path)!r}
+for line in sys.stdin:
+    request = json.loads(line)
+    if request.get('type') == 'start':
+        print(json.dumps({{'schema':'royalebench.agent-event.v1','type':'ready'}}), flush=True)
+    elif request.get('type') == 'end':
+        with open(result_path, 'w', encoding='utf-8') as handle:
+            json.dump(request['result'], handle)
+    elif request.get('type') == 'close':
+        break
+"""
+    agent = SubprocessAgent("end-event-test", [sys.executable, "-u", "-c", worker])
+    agent.reset({"match_id": "end-match", "seat": 1})
+    agent.finish({"match_id": "end-match", "outcome": "draw", "status": "completed"})
+    agent.close()
+    payload = json.loads(result_path.read_text(encoding="utf-8"))
+    assert payload["outcome"] == "draw"
+    assert payload["status"] == "completed"
+    assert payload["seat"] == 1
+    assert payload["agent"] == "end-event-test"
