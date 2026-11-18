@@ -19,6 +19,7 @@ class FakeSchema:
     flags = {"alive": 1}
     play_flags = {"card_shown": 1, "point_shown": 2}
     state_names = []
+    results = {"running": 0, "won": 1, "lost": 2, "draw": 3}
     scales = {"elixir_scale": 10_000}
 
     @staticmethod
@@ -131,6 +132,7 @@ def test_observation_keeps_crforge_raw_scaled_values_for_audit():
     assert observation["own"]["elixir_scaled"] == 50_000
     assert observation["opponent"]["estimated_elixir_scaled"] == 42_000
     assert observation["seat"] == 1
+
 
 def test_cycle_inference_reverses_crforge_newest_first_play_rows():
     vector = FakeVector()
