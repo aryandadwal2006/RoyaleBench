@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import json
 import sys
 
 import pytest
 
 from royalebench.agents.subprocess_agent import SubprocessAgent
-from royalebench.cli import _agent_factories, build_parser
+from royalebench.cli import _agent_factories, build_parser, main
+from royalebench.config import V1_CONTENT_SHA, V1_CRFORGE_COMMIT, V1_DATA_VERSION
 
 
 def test_cli_exposes_expected_v1_commands():
@@ -16,6 +18,15 @@ def test_cli_exposes_expected_v1_commands():
     args = parser.parse_args(["tournament", "--agents", "random-legal-v1,hog-cycle-rules-v1"])
     assert args.command == "tournament"
     assert args.profile == "fast-250ms-v1"
+
+
+def test_config_check_reports_the_locked_engine_and_data_fingerprints(capsys):
+    assert main(["config-check"]) == 0
+    report = json.loads(capsys.readouterr().out)
+    assert report["valid"] is True
+    assert report["upstream_commit"] == V1_CRFORGE_COMMIT
+    assert report["data_version"] == V1_DATA_VERSION
+    assert report["data_content_sha"] == V1_CONTENT_SHA
 
 
 def test_cli_builds_external_jsonl_agent_factory(tmp_path):
