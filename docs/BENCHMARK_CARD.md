@@ -34,7 +34,7 @@ Actions are wait, play a card from one of four hand slots at an 18 x 32 tile-cen
 
 ## Evaluation protocol
 
-Each pair of agents plays both seat assignments for each configured seed. Both agents decide concurrently while the simulation clock is paused. Each decision has a shared watchdog deadline. Agent failures, invalid actions and engine faults are recorded separately from completed game outcomes; failed/void games are not converted into strategic losses.
+Each pair of agents plays both seat assignments for each configured seed. Both agents decide concurrently while the simulation clock is paused. Each decision has a shared watchdog deadline. Agent failures, invalid actions and engine faults are recorded separately from completed game outcomes; failed/void games are not converted into strategic losses. A match is voided if either seat's observation reports entity overflow, because the state supplied to the agent would be incomplete.
 
 The tournament manifest records the schedule, seeds, cadence, rating settings, engine fingerprints, per-match manifest hashes and hashes/sizes for match result and trajectory artifacts.
 
@@ -65,9 +65,10 @@ External pretrained agents are not official leaderboard entries until licensing,
 - CRForge is a deterministic offline engine with a bounded conformance/fidelity scope. Results are conditional on its pinned commit and locally obtained game data.
 - The engine's game tables are not distributed by RoyaleBench. Users must obtain/build them through the documented upstream process.
 - The subprocess adapter restricts inherited environment variables and enforces timeouts, but is not an OS/container security boundary.
-- Opponent elixir is CRForge's seat-side `ElixirCount` accounting, explicitly derived from what that seat can see rather than the opponent's hidden elixir field. CRForge documents one known source of drift: champion ability refunds that are not shown to the opponent. The fixed Hog 2.6 v1 deck has no champion, so that refund path is outside the v1 deck; this still needs a v1-specific integration test. Public opponent card-cycle inference remains bounded by what the play ledger has revealed.
+- Opponent elixir is CRForge's seat-side `ElixirCount` accounting, explicitly derived from what that seat can see rather than the opponent's hidden elixir field. CRForge documents one known source of drift: champion ability refunds that are not shown to the opponent. The fixed Hog 2.6 v1 deck has no champion, so that refund path is outside the v1 deck. A native v1-specific differential test is included in the acceptance suite but has not yet been run. Public opponent card-cycle inference remains bounded by what the play ledger has revealed.
 - Forecasting metrics currently cover visible tower HP, elixir, entity-type counts and entity-count error. Stable entity identity, movement trajectories and event-timing metrics are not yet implemented.
-- Final local Windows headless acceptance against the user's installed CRForge build remains outstanding. The desktop visualizer smoke test does not prove headless adapter correctness.
+- Runtime guards now verify CRForge's effective cadence, levels, tick limit, mask/id versions and 20-tick PlayerCommands delay. Reset-time guards verify the actual mirrored deck, card levels and tower health symmetry.
+- The final validation script runs CRForge's pinned `:env:test` native observation/elixir suite plus RoyaleBench's Python and native integration tests. These tests are implemented but have not yet been run in the user's Windows environment. The desktop visualizer smoke test does not prove headless adapter correctness.
 - The upstream CRForge test failures previously observed by the project owner have not yet been reconciled with the exact test log.
 
 ## Reproducibility
