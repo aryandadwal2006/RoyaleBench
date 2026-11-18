@@ -58,7 +58,7 @@ These are current design decisions for RoyaleBench v1. They can change only thro
 
 ## ADR-0006: Target half-tile placement lattice, with tile-centre baseline fallback
 
-**Status:** Proposed target; acceptance test required.
+**Status:** Superseded for v1 by ADR-0010; retained as a possible future extension.
 
 **Decision:** The desired v1 action resolution is a 36 × 64 half-tile lattice. The agent expresses a cell centre as x_tile/y_tile in board-tile units (0.25, 0.75, 1.25, ... horizontally; 0.25, 0.75, ... vertically); the adapter maps those values to integer routing-cell coordinates and uses the engine's native placement search. The current crforge Python action schema is 18 × 32 tile-centre; it does not already expose the half-tile grid.
 
