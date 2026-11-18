@@ -61,6 +61,11 @@ def derive_opponent_cycle(
         if exact
         else []
     )
+    uncertainty = (
+        None
+        if exact
+        else "one-or-more-of-last-four-plays-is-not-publicly-identified"
+    )
     return {
         "hand_cards": hand_cards,
         "hand_exact": exact,
@@ -70,5 +75,5 @@ def derive_opponent_cycle(
         "plays_until_return": plays_until_return,
         "public_plays_observed": int(play_count),
         "inference": "last-four-public-card-plays",
-        "uncertainty": None if exact else "one-or-more-of-last-four-plays-is-not-publicly-identified",
+        "uncertainty": uncertainty,
     }
