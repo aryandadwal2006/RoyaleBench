@@ -4,6 +4,7 @@
 **Benchmark version:** v1.0 candidate  
 **Canonical simulator:** CRForge commit `fa5959055c590a493d62c8dbc804e602832d08a6`  
 **Game-data target:** 16.635.8  
+**Game-data content SHA:** `062a11e0500c03cc041f123413b1ef1846b539a4`  
 **Last updated:** 2026-11-18
 
 ## Summary
@@ -16,7 +17,7 @@ The intended users are researchers evaluating scripted policies, reinforcement-l
 
 Each agent controls one seat in a two-player battle. At each decision point, it receives its own ObservationV1 and returns one ActionV1. The engine remains authoritative for action legality, placement search, command delay and game outcomes.
 
-V1 fixes both seats to the same Hog 2.6 deck and equal card/tower levels. The exact deck ordering, levels, engine build and data hash are recorded in the match manifest.
+V1 fixes both seats to the exact same ordered Hog 2.6 deck, card/tower level 11, CRForge commit `fa5959055c590a493d62c8dbc804e602832d08a6`, and game-data content SHA `062a11e0500c03cc041f123413b1ef1846b539a4`. Startup rejects any source/data/configuration drift.
 
 ## Tracks and outputs
 
@@ -67,7 +68,7 @@ External pretrained agents are not official leaderboard entries until licensing,
 - The subprocess adapter restricts inherited environment variables and enforces timeouts, but is not an OS/container security boundary.
 - Opponent elixir is CRForge's seat-side `ElixirCount` accounting, explicitly derived from what that seat can see rather than the opponent's hidden elixir field. CRForge documents one known source of drift: champion ability refunds that are not shown to the opponent. The fixed Hog 2.6 v1 deck has no champion, so that refund path is outside the v1 deck. A native v1-specific differential test is included in the acceptance suite but has not yet been run. Public opponent card-cycle inference remains bounded by what the play ledger has revealed.
 - Forecasting metrics currently cover visible tower HP, elixir, entity-type counts and entity-count error. Stable entity identity, movement trajectories and event-timing metrics are not yet implemented.
-- Runtime guards now verify CRForge's effective cadence, levels, tick limit, mask/id versions and 20-tick PlayerCommands delay. Reset-time guards verify the actual mirrored deck, card levels and tower health symmetry.
+- Runtime guards verify the actual CRForge source commit, game-data version and content SHA, effective cadence, levels, tick limit, mask/id versions and 20-tick PlayerCommands delay. Reset-time guards verify the actual mirrored deck, card levels, equal tower HP and initial public-elixir accounting.
 - The final validation script runs CRForge's pinned `:env:test` native observation/elixir suite plus RoyaleBench's Python and native integration tests. These tests are implemented but have not yet been run in the user's Windows environment. The desktop visualizer smoke test does not prove headless adapter correctness.
 - The upstream CRForge test failures previously observed by the project owner have not yet been reconciled with the exact test log.
 
