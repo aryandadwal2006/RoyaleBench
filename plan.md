@@ -525,9 +525,8 @@ Keep the current v1 acceptance surface stable. Add the research suite behind a n
 - [x] Confirm upstream CRForge `:env:test`, all Python tests (120 passed), Ruff and config validation pass.
 - [x] Complete both six-match headless tournaments, trajectory export and persistence forecasting.
 - [x] Preserve the complete local run directory `results/validation-20261118-171426/`, including validation report, JUnit report, Gradle test report and generated outputs.
-- [ ] Fix genuine failures at their source; never weaken acceptance checks merely to obtain a green run.
 
-**Exit gate:** a complete local Windows validation report with all expected matches, non-empty splits, forecast examples at every horizon and no failed/void acceptance matches.
+**Exit gate: PASSED.** The complete local Windows validation report records all required checks, matches, non-empty splits, forecast examples at every horizon and no failed/void acceptance matches. Any future failures must still be fixed at their source; acceptance checks must never be weakened merely to obtain a green run.
 
 ### WP1 — Lock scientific questions, protocol and paper positioning
 
