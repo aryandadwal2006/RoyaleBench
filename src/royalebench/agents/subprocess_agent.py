@@ -17,7 +17,6 @@ from royalebench.observations import observation_hash
 from royalebench.protocol.actions import ActionResolution
 from royalebench.protocol.responses import AgentResponse
 
-
 _AGENT_EVENT_SCHEMA = "royalebench.agent-event.v1"
 _AGENT_REQUEST_SCHEMA = "royalebench.agent-request.v1"
 
@@ -299,7 +298,5 @@ class SubprocessAgent:
         self.last_telemetry = None
         for stream in (process.stdin, process.stdout):
             if stream is not None:
-                try:
+                with contextlib.suppress(OSError):
                     stream.close()
-                except OSError:
-                    pass
