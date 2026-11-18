@@ -106,6 +106,7 @@ This process boundary limits accidental credential exposure and provides startup
 - [Architecture and design](docs/ARCHITECTURE.md)
 - [Agent protocol](docs/AGENT_PROTOCOL.md)
 - [Trajectory dataset and forecasting](docs/DATASET.md)
+- [Learned forecaster adapter API](docs/FORECASTER_API.md)
 - [Benchmark card and limitations](docs/BENCHMARK_CARD.md)
 - [FAIR observation provenance audit](docs/FAIRNESS_AUDIT.md)
 - [Implementation roadmap and acceptance gates](docs/ROADMAP.md)
