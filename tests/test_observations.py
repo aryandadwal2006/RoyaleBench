@@ -114,3 +114,29 @@ def test_observation_keeps_crforge_raw_scaled_values_for_audit():
     assert observation["own"]["elixir_scaled"] == 50_000
     assert observation["opponent"]["estimated_elixir_scaled"] == 42_000
     assert observation["seat"] == 1
+
+def test_cycle_inference_reverses_crforge_newest_first_play_rows():
+    vector = FakeVector()
+    mask = np.zeros(vector.schema.first_ability + 2, dtype=np.uint8)
+    raw = raw_seat_view()
+
+    # The actual play ledger in CRForge is newest-first. The chronological
+    # sequence is IceGolem, IceSpirit, Musketeer, Log.
+    chronological_ids = [3, 4, 5, 7]
+    raw["enemy_play_count"] = np.array([4])
+    raw["enemy_play_card"][:4] = np.array(list(reversed(chronological_ids)))
+    raw["enemy_play_cast"][:4] = np.array(list(reversed(chronological_ids)))
+    raw["enemy_play_flags"][:4] = 1  # CRForge PLAY_CARD_SHOWN
+
+    observation = build_observation(
+        vector, raw, mask, match_id="cycle-order", decision_id=1, seat=0
+    )
+
+    cycle = observation["opponent"]["card_cycle"]
+    assert cycle["hand_exact"] is True
+    assert cycle["queue_oldest_to_newest"] == [
+        "IceGolem", "IceSpirit", "Musketeer", "Log"
+    ]
+    assert cycle["hand_cards"] == ["Cannon", "Fireball", "HogRider", "Skeletons"]
+    # Keep the raw public-play presentation order newest-first for agent consumers.
+    assert observation["opponent"]["recent_plays"][0]["card"] == "Log"
