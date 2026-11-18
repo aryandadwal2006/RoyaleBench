@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import queue
+import signal
 import subprocess
 import threading
 from pathlib import Path
@@ -82,7 +83,14 @@ class SubprocessAgent:
         process = self._process
         if process is None or process.poll() is not None or process.stdin is None:
             raise RuntimeError(f"agent subprocess {self.name!r} is not running")
-        process.stdin.write(json.dumps(message, separators=(",", ":"), ensure_ascii=False))
+        process.stdin.write(
+            json.dumps(
+                message,
+                separators=(",", ":"),
+                ensure_ascii=False,
+                allow_nan=False,
+            )
+        )
         process.stdin.write("\n")
         process.stdin.flush()
 
@@ -139,6 +147,10 @@ class SubprocessAgent:
                 text=True,
                 encoding="utf-8",
                 bufsize=1,
+                start_new_session=(os.name == "posix"),
+                creationflags=(
+                    subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0
+                ),
             )
         except OSError as exc:
             self._process = None
@@ -174,28 +186,32 @@ class SubprocessAgent:
         seat = int(observation["seat"])
         obs_hash = observation_hash(observation)
         request_id = f"{match_id}:{decision_id}:{seat}"
-        self._send(
-            {
-                "schema": _AGENT_REQUEST_SCHEMA,
-                "type": "act",
-                "request_id": request_id,
-                "decision_id": decision_id,
-                "observation_hash": obs_hash,
-                "observation": observation,
-            }
-        )
-        response = self._receive(self.timeout_s)
-        parsed = AgentResponse.from_mapping(
-            response,
-            expected_request_id=request_id,
-            expected_decision_id=decision_id,
-            expected_observation_hash=obs_hash,
-            resolution=ActionResolution.tile_center(),
-        )
+        try:
+            self._send(
+                {
+                    "schema": _AGENT_REQUEST_SCHEMA,
+                    "type": "act",
+                    "request_id": request_id,
+                    "decision_id": decision_id,
+                    "observation_hash": obs_hash,
+                    "observation": observation,
+                }
+            )
+            response = self._receive(self.timeout_s)
+            parsed = AgentResponse.from_mapping(
+                response,
+                expected_request_id=request_id,
+                expected_decision_id=decision_id,
+                expected_observation_hash=obs_hash,
+                resolution=ActionResolution.tile_center(),
+            )
+            action = response["action"]
+            if not isinstance(action, dict):
+                raise ValueError("agent response action must be a JSON object")
+        except Exception:
+            self._terminate()
+            raise
         self.last_telemetry = parsed.telemetry
-        action = response["action"]
-        if not isinstance(action, dict):
-            raise ValueError("agent response action must be a JSON object")
         return action
 
     def finish(self, result: dict[str, Any]) -> None:
@@ -225,12 +241,38 @@ class SubprocessAgent:
         if process is None:
             return
         if process.poll() is None:
-            process.terminate()
-            try:
-                process.wait(timeout=self.shutdown_timeout_s)
-            except subprocess.TimeoutExpired:
-                process.kill()
-                process.wait()
+            if os.name == "nt":
+                # A policy may start helper workers. Terminate the process tree on Windows,
+                # not just the Python parent, so a timed-out submission cannot leak workers.
+                try:
+                    subprocess.run(
+                        ["taskkill", "/PID", str(process.pid), "/T", "/F"],
+                        check=False,
+                        capture_output=True,
+                        timeout=5,
+                    )
+                except (OSError, subprocess.TimeoutExpired):
+                    process.kill()
+            elif os.name == "posix":
+                try:
+                    os.killpg(process.pid, signal.SIGTERM)
+                    process.wait(timeout=self.shutdown_timeout_s)
+                except subprocess.TimeoutExpired:
+                    try:
+                        os.killpg(process.pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+                except ProcessLookupError:
+                    pass
+            else:
+                process.terminate()
+
+            if process.poll() is None:
+                try:
+                    process.wait(timeout=self.shutdown_timeout_s)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait()
         for stream in (process.stdin, process.stdout):
             if stream is not None:
                 try:
@@ -253,6 +295,8 @@ class SubprocessAgent:
                 self._terminate()
                 return
         self._process = None
+        self._match_info = {}
+        self.last_telemetry = None
         for stream in (process.stdin, process.stdout):
             if stream is not None:
                 try:
