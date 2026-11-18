@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import contextlib
+import copy
 import gzip
 import json
 import statistics
 import time
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, wait
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -143,6 +144,17 @@ class MatchRunner:
             "observation_schema": OBSERVATION_SCHEMA,
             "response_schema": RESPONSE_SCHEMA,
             "action_resolution": ActionResolution.tile_center().resolution_id,
+            "public_memory_version": "opponent-cycle-v1",
+            "upstream": {
+                "crforge_commit": "fa5959055c590a493d62c8dbc804e602832d08a6"
+            },
+            "match_config": {
+                "deck": list(self.engine.config.deck),
+                "card_level": self.engine.config.card_level,
+                "tower_level": self.engine.config.tower_level,
+                "max_ticks": self.engine.config.max_ticks,
+                "mask_version": self.engine.config.mask_version,
+            },
             "engine": self.engine.metadata,
             "agents": [{"name": agent.name, "seat": seat} for seat, agent in enumerate(agents)],
         }
@@ -178,14 +190,27 @@ class MatchRunner:
             ):
                 for decision_id in range(self.max_decisions):
                     futures = [
-                        pool.submit(self._call_agent, agent, dict(observations[seat]))
+                        pool.submit(self._call_agent, agent, copy.deepcopy(observations[seat]))
                         for seat, agent in enumerate(agents)
                     ]
+                    _, pending_futures = wait(futures, timeout=self.request_timeout_s)
+                    if pending_futures:
+                        timed_out_seats = [
+                            seat for seat, future in enumerate(futures) if future in pending_futures
+                        ]
+                        labels = ", ".join(
+                            f"{agents[seat].name}@seat{seat}" for seat in timed_out_seats
+                        )
+                        raise AgentExecutionError(
+                            f"request watchdog expired after {self.request_timeout_s:.3f}s "
+                            f"at decision {decision_id}: {labels}"
+                        )
+
                     action_ids = [0, 0]
                     decision_records: list[dict[str, Any]] = []
                     for seat, future in enumerate(futures):
                         try:
-                            raw_action, latency_ms = future.result(timeout=self.request_timeout_s)
+                            raw_action, latency_ms = future.result()
                         except Exception as exc:
                             raise AgentExecutionError(
                                 f"agent {agents[seat].name} at seat {seat}, decision "
@@ -206,14 +231,20 @@ class MatchRunner:
                         }
                         if isinstance(telemetry, dict):
                             envelope["telemetry"] = telemetry
-                        parsed = AgentResponse.from_mapping(
-                            envelope,
-                            expected_request_id=request_id,
-                            expected_decision_id=decision_id,
-                            expected_observation_hash=obs_hash,
-                            resolution=ActionResolution.tile_center(),
-                        )
-                        encoded, mask_open = self.engine.encode_action(seat, raw_action)
+                        try:
+                            parsed = AgentResponse.from_mapping(
+                                envelope,
+                                expected_request_id=request_id,
+                                expected_decision_id=decision_id,
+                                expected_observation_hash=obs_hash,
+                                resolution=ActionResolution.tile_center(),
+                            )
+                            encoded, mask_open = self.engine.encode_action(seat, raw_action)
+                        except Exception as exc:
+                            raise AgentExecutionError(
+                                f"agent {agents[seat].name} returned an invalid action at "
+                                f"seat {seat}, decision {decision_id}: {exc}"
+                            ) from exc
                         action_ids[seat] = encoded
                         decision_records.append(
                             {
