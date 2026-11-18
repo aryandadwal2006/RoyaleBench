@@ -101,7 +101,7 @@ class JsonlSubprocessAgent:
         )
         self._reader.start()
 
-    def _read_stdout(self, stream) -> None:
+    def _read_stdout(self, stream: Any) -> None:
         try:
             for line in stream:
                 self._responses.put(line.rstrip("\r\n"))
@@ -238,7 +238,7 @@ class JsonlSubprocessAgent:
             if pipe is not None:
                 try:
                     pipe.close()
-                except OSError:
+                except (OSError, ValueError):
                     pass
         if process.poll() is None:
             process.terminate()
