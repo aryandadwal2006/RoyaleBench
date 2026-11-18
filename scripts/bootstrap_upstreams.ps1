@@ -9,22 +9,43 @@ if ($LASTEXITCODE -ne 0) { throw "git submodule sync failed" }
 git submodule update --init --recursive
 if ($LASTEXITCODE -ne 0) { throw "git submodule update failed" }
 
-$Pins = @(
-    @{ Path = "third_party/upstream/crforge"; Sha = "fa5959055c590a493d62c8dbc804e602832d08a6" },
-    @{ Path = "third_party/upstream/royalegym"; Sha = "278bcb06dae717b89194b992235a9fa8a5209084" },
-    @{ Path = "third_party/upstream/royalesim"; Sha = "a849c29ae632e12f81442c45b0d9b2f2f99f15" }
+$Submodules = @(
+    "third_party/upstream/crforge",
+    "third_party/upstream/royalegym",
+    "third_party/upstream/royalesim"
 )
 
-foreach ($Pin in $Pins) {
-    if (-not (Test-Path $Pin.Path)) {
-        throw "Submodule path missing: $($Pin.Path)"
+foreach ($SubmodulePath in $Submodules) {
+    if (-not (Test-Path $SubmodulePath)) {
+        throw "Submodule path missing: $SubmodulePath"
     }
-    $Actual = (git -C $Pin.Path rev-parse HEAD).Trim()
-    if ($LASTEXITCODE -ne 0) { throw "Could not read submodule revision: $($Pin.Path)" }
-    if ($Actual -ne $Pin.Sha) {
-        throw "$($Pin.Path) is at $Actual; expected pinned revision $($Pin.Sha)"
-    }
-    Write-Host "OK: $($Pin.Path) @ $Actual"
-}
 
+    # Read the expected object ID from the superproject's gitlink. This is the
+    # authoritative pin and avoids duplicating commit IDs in this script.
+    $GitlinkLine = & git ls-tree HEAD -- $SubmodulePath
+    if ($LASTEXITCODE -ne 0) {
+        throw "Could not read the pinned gitlink for $SubmodulePath"
+    }
+    $GitlinkText = [string]($GitlinkLine | Select-Object -Last 1)
+    $GitlinkMatch = [regex]::Match($GitlinkText, '^160000 commit (?<sha>[0-9a-fA-F]{40})\s')
+    if (-not $GitlinkMatch.Success) {
+        throw "No submodule commit pin found in HEAD for $SubmodulePath. Git returned: '$GitlinkText'"
+    }
+    $ExpectedSha = $GitlinkMatch.Groups['sha'].Value.ToLowerInvariant()
+
+    $RevisionOutput = & git -C $SubmodulePath rev-parse --verify 'HEAD^{commit}'
+    if ($LASTEXITCODE -ne 0) {
+        throw "Could not read submodule revision: $SubmodulePath"
+    }
+    $ActualSha = [string]($RevisionOutput | Select-Object -Last 1)
+    $ActualSha = $ActualSha.Trim().ToLowerInvariant()
+    if ($ActualSha -notmatch '^[0-9a-f]{40}$') {
+        throw "Invalid revision returned for $SubmodulePath: '$ActualSha' (length $($ActualSha.Length))"
+    }
+
+    if (-not [string]::Equals($ActualSha, $ExpectedSha, [System.StringComparison]::Ordinal)) {
+        throw "$SubmodulePath is at '$ActualSha'; the superproject pins '$ExpectedSha'. Run git submodule update --init --recursive."
+    }
+    Write-Host "OK: $SubmodulePath @ $ActualSha"
+}
 Write-Host "All upstream source pins verified."
