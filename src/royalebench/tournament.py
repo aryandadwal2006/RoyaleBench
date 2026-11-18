@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import csv
 import json
+import random
 import re
+import statistics
 from collections import defaultdict
 from collections.abc import Callable
 from contextlib import suppress
@@ -17,11 +19,35 @@ from royalebench.runner import MatchResult, MatchRunner
 
 AgentFactory = Callable[[], Agent]
 EngineFactory = Callable[[int], Any]
+_BOOTSTRAP_ITERATIONS = 10_000
 
 
 def _slug(value: str) -> str:
     cleaned = re.sub(r"[^A-Za-z0-9_.-]+", "-", value).strip("-")
     return cleaned or "agent"
+
+
+def _cluster_bootstrap_ci(
+    seed_scores: dict[int, list[float]],
+    *,
+    rng_seed: int,
+    iterations: int = _BOOTSTRAP_ITERATIONS,
+) -> list[float] | None:
+    """Percentile CI over simulator-seed clusters, preserving side-swapped pairing."""
+    cluster_means = [
+        statistics.fmean(scores) for _, scores in sorted(seed_scores.items()) if scores
+    ]
+    if len(cluster_means) < 2:
+        return None
+    rng = random.Random(rng_seed)
+    estimates = []
+    for _ in range(iterations):
+        sample = [rng.choice(cluster_means) for _ in cluster_means]
+        estimates.append(statistics.fmean(sample))
+    estimates.sort()
+    lower = estimates[int(0.025 * (iterations - 1))]
+    upper = estimates[int(0.975 * (iterations - 1))]
+    return [lower, upper]
 
 
 class TournamentRunner:
@@ -54,14 +80,24 @@ class TournamentRunner:
             raise ValueError("at least one seed is required")
         if len(set(seeds)) != len(seeds):
             raise ValueError("tournament seeds must be unique")
+        if any(not -(2**31) <= int(seed) < 2**31 for seed in seeds):
+            raise ValueError("all seeds must fit CRForge's signed 32-bit seed field")
+
+        players = sorted(agent_factories)
+        slugs = [_slug(player) for player in players]
+        if len(set(slugs)) != len(slugs):
+            raise ValueError("agent names collide after conversion to filesystem-safe match IDs")
 
         root = Path(output_dir)
         matches_dir = root / "matches"
+        if matches_dir.exists() and any(matches_dir.iterdir()):
+            raise FileExistsError(
+                f"{matches_dir} already contains matches; choose a new tournament output directory"
+            )
         matches_dir.mkdir(parents=True, exist_ok=True)
-        players = sorted(agent_factories)
+
         results: list[dict[str, Any]] = []
         completed: list[MatchResult] = []
-
         for left_index, left in enumerate(players):
             for right in players[left_index + 1 :]:
                 for seed in seeds:
@@ -107,23 +143,68 @@ class TournamentRunner:
                             completed.append(result)
 
         period_games: dict[str, list[PeriodGame]] = defaultdict(list)
+        seed_scores: dict[str, dict[int, list[float]]] = defaultdict(
+            lambda: defaultdict(list)
+        )
+        counts = {
+            name: {"wins": 0, "draws": 0, "losses": 0} for name in players
+        }
         for result in completed:
-            seat0, seat1 = result.agents
-            if seat0.endswith("@seat0") and seat1.endswith("@seat1"):
-                continue
-            score0 = (
-                0.5
-                if result.outcome == "draw"
-                else 1.0
-                if result.winner == 0
-                else 0.0
-            )
-            period_games[seat0].append(PeriodGame(seat1, score0))
-            period_games[seat1].append(PeriodGame(seat0, 1.0 - score0))
+            names = result.agents
+            if result.outcome == "draw":
+                seat_scores = (0.5, 0.5)
+                counts[names[0]]["draws"] += 1
+                counts[names[1]]["draws"] += 1
+            else:
+                winning_seat = int(result.winner)
+                losing_seat = 1 - winning_seat
+                seat_scores = (1.0, 0.0) if winning_seat == 0 else (0.0, 1.0)
+                counts[names[winning_seat]]["wins"] += 1
+                counts[names[losing_seat]]["losses"] += 1
+
+            for seat, name in enumerate(names):
+                score = seat_scores[seat]
+                period_games[name].append(PeriodGame(names[1 - seat], score))
+                seed_scores[name][result.seed].append(score)
 
         starting_rating = initial_rating if initial_rating is not None else Rating()
         ratings = {name: starting_rating for name in players}
         ratings = update_rating_period(ratings, period_games)
+
+        leaderboard = []
+        for name in players:
+            per_seed_scores = [
+                statistics.fmean(scores)
+                for _, scores in sorted(seed_scores[name].items())
+                if scores
+            ]
+            mean_score = statistics.fmean(per_seed_scores) if per_seed_scores else 0.5
+            interval = _cluster_bootstrap_ci(
+                seed_scores[name],
+                rng_seed=sum(name.encode()) + sum(int(seed) for seed in seeds),
+            )
+            win_draw_loss = counts[name]
+            leaderboard.append(
+                {
+                    "agent": name,
+                    "rating": ratings[name].rating,
+                    "rating_deviation": ratings[name].deviation,
+                    "volatility": ratings[name].volatility,
+                    "matches_rated": sum(win_draw_loss.values()),
+                    "wins": win_draw_loss["wins"],
+                    "draws": win_draw_loss["draws"],
+                    "losses": win_draw_loss["losses"],
+                    "score": mean_score,
+                    "score_ci95": interval,
+                    "score_ci_method": (
+                        "10,000-replicate percentile bootstrap over simulator-seed clusters"
+                    ),
+                }
+            )
+        leaderboard.sort(key=lambda row: row["rating"], reverse=True)
+        for rank, row in enumerate(leaderboard, start=1):
+            row["rank"] = rank
+
         summary = {
             "schema": "royalebench.tournament-result.v1",
             "profile": self.profile,
@@ -133,16 +214,7 @@ class TournamentRunner:
             "total_matches": len(results),
             "completed_matches": len(completed),
             "void_or_failed_matches": len(results) - len(completed),
-            "leaderboard": [
-                {
-                    "agent": name,
-                    "rating": ratings[name].rating,
-                    "rating_deviation": ratings[name].deviation,
-                    "volatility": ratings[name].volatility,
-                    "matches_rated": len(period_games.get(name, [])),
-                }
-                for name in sorted(players, key=lambda item: ratings[item].rating, reverse=True)
-            ],
+            "leaderboard": leaderboard,
         }
         (root / "matches.json").write_text(
             json.dumps(results, indent=2, sort_keys=True) + "\n",
@@ -162,9 +234,16 @@ class TournamentRunner:
                     "rating_deviation",
                     "volatility",
                     "matches_rated",
+                    "wins",
+                    "draws",
+                    "losses",
+                    "score",
+                    "score_ci95",
                 ],
             )
             writer.writeheader()
-            for rank, row in enumerate(summary["leaderboard"], start=1):
-                writer.writerow({"rank": rank, **row})
+            for row in leaderboard:
+                csv_row = dict(row)
+                csv_row["score_ci95"] = json.dumps(row["score_ci95"])
+                writer.writerow(csv_row)
         return summary
