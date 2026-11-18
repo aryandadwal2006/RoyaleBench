@@ -15,6 +15,7 @@ $ValidationRoot = Join-Path $Root ("results\validation-" + $RunId)
 $TournamentRoot = Join-Path $ValidationRoot "tournament"
 $ExternalTournamentRoot = Join-Path $ValidationRoot "external-agent-tournament"
 $DatasetRoot = Join-Path $ValidationRoot "trajectory_dataset"
+$ForecastReportPath = Join-Path $ValidationRoot "forecast-persistence.json"
 
 Write-Host "=== RoyaleBench v1 integrated validation ==="
 Write-Host "Repository: $Root"
@@ -72,9 +73,14 @@ Write-Host "=== Automatic trajectory dataset ==="
 & $Python -m royalebench dataset --matches (Join-Path $TournamentRoot "matches") --output $DatasetRoot
 if ($LASTEXITCODE -ne 0) { throw "Trajectory dataset export failed." }
 
+Write-Host "=== Held-out forecasting baseline ==="
+& $Python -m royalebench forecast-eval --split (Join-Path $DatasetRoot "test.jsonl.gz") --horizons "1,2,4" --output $ForecastReportPath
+if ($LASTEXITCODE -ne 0) { throw "Held-out forecasting baseline failed." }
+
 $TournamentJson = Get-Content (Join-Path $TournamentRoot "tournament.json") -Raw | ConvertFrom-Json
 $ExternalTournamentJson = Get-Content (Join-Path $ExternalTournamentRoot "tournament.json") -Raw | ConvertFrom-Json
 $DatasetJson = Get-Content (Join-Path $DatasetRoot "dataset_manifest.json") -Raw | ConvertFrom-Json
+$ForecastJson = Get-Content $ForecastReportPath -Raw | ConvertFrom-Json
 $Report = [ordered]@{
     status = "passed"
     started_at = $Started.ToString("o")
@@ -96,10 +102,16 @@ $Report = [ordered]@{
         total_matches = $DatasetJson.total_matches
         splits = $DatasetJson.splits
     }
+    forecasting = @{
+        forecaster = $ForecastJson.forecaster
+        horizons = $ForecastJson.horizons
+        dataset_provenance = $ForecastJson.dataset_provenance
+    }
     output = @{
         tournament = $TournamentRoot
         external_agent_tournament = $ExternalTournamentRoot
         dataset = $DatasetRoot
+        forecast_report = $ForecastReportPath
     }
 }
 $ReportPath = Join-Path $ValidationRoot "validation_report.json"
