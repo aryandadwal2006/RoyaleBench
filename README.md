@@ -108,9 +108,10 @@ python -m royalebench tournament `
 
 This process boundary limits accidental credential exposure and provides startup/decision timeouts, but it is not an OS security sandbox. Do not run untrusted participants under your personal account without an additional container or OS isolation layer.
 
-## Research plan
+## Research plans
 
-- [ICML 2027 research and implementation plan](plan.md)
+- [ICML 2027 benchmark and evaluation paper](plan.md)
+- [Project Crown: long-term elite Clash Royale agent research](agent_research_plan.md)
 
 ## Benchmark documentation
 
