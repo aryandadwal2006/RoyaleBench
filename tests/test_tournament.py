@@ -103,8 +103,12 @@ def test_round_robin_runs_paired_seat_swaps_and_reports_wdl_ci(tmp_path):
         "leaderboard.csv",
     }
     for match in manifest["match_manifests"]:
-        assert len(match["sha256"]) == 64
-        assert (tmp_path / match["path"]).is_file()
+        assert {"manifest.json", "result.json", "trajectory.jsonl.gz"} <= set(match["files"])
+        for artifact in match["files"].values():
+            assert len(artifact["sha256"]) == 64
+            path = tmp_path / artifact["path"]
+            assert path.is_file()
+            assert path.stat().st_size == artifact["size_bytes"]
 
 
 def test_tournament_refuses_to_overwrite_existing_match_results(tmp_path):
