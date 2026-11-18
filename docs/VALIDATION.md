@@ -70,13 +70,28 @@ A subsequent full-build attempt on 2026-11-18 created the install distribution (
 
 The next run successfully resolved `jvm.dll` and reached the native adapter checks. All three then exposed the same card-name mismatch: the public card name `IceGolem` was not recognized because the pinned table uses the internal row name `IceGolemite`. The resolver now maps that display name to the exact pinned row, and a unit test locks the mapping for the complete Hog 2.6 deck (`IceGolemite`, `IceSpirits` and `Log` included). Full v1 acceptance remains pending a successful rerun.
 
-## Latest 2026-11-18 integration attempt
+## Successful local Windows acceptance (2026-11-18)
 
-The next full integration run completed all 6 paired baseline matches and passed all 118 Python tests, including the three native adapter tests, as well as Ruff and config-check. It then stopped before the external-worker match because Windows PowerShell stripped the embedded quotes from the JSON command argument. The validation script now writes the argv array to a UTF-8 JSON file and passes its path; the CLI accepts this file form and tests both the parser and mutual-exclusion behavior.
+The user completed the full integrated validation path on Windows with Python 3.14.5, Java 21.0.13 and `-SkipBuild` (the CRForge install distribution and game tables had already been built). The run directory was:
 
-The native test output also contained repeated Windows access-violation diagnostics from JPype/JVM startup even though the tests completed. JPype documents that pytest's Python fault handler can report the JVM's internally handled low-level exceptions as misleading fatal errors. The native test module now resets the Python fault handler using JPype's recommended enable/disable sequence immediately before native tests.
+```text
+results/validation-20261118-171426/
+```
 
-Full v1 acceptance remains pending a successful rerun.
+The consolidated `validation_report.json` records `status: passed`. Checks and outputs:
+
+- CRForge `:env:test`: `BUILD SUCCESSFUL`; runtime distribution contained six JAR files; pinned `16.635.8` game tables were present.
+- Python tests: **120 passed**. The three native CRForge adapter tests were collected and executed, with zero skips.
+- Ruff and frozen v1 configuration validation: passed.
+- Paired random-legal versus Hog-cycle tournament: **6/6 matches completed**, zero void/failed.
+- External JSONL-worker tournament: **6/6 matches completed**, zero void/failed.
+- Trajectory export: 6 matches assigned by seed cluster to train/validation/test, with 3,556 / 2,948 / 2,996 transitions and recorded SHA-256 hashes.
+- Persistence forecasting: horizons 1, 2 and 4 evaluated on 2,996 / 2,992 / 2,984 examples.
+- Final status: `VALIDATION PASSED`.
+
+The three-seed tournaments and six-match dataset are acceptance smoke tests, not evidence for stable agent rankings or paper-grade uncertainty. Random-legal won 5/6 against the in-process Hog-cycle policy and 6/6 against the external Hog worker. Audit the rule policy and worker parity before interpreting agent strength. The persistence forecaster is a sanity baseline, not a learned world model.
+
+The validation artifact is local and should be preserved intact. Do not hand-edit the generated report, manifest or shards.
 
 ## Outputs
 
