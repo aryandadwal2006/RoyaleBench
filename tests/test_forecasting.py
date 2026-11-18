@@ -6,11 +6,21 @@ import json
 
 import pytest
 
-from royalebench.forecasting import PersistenceForecaster, evaluate_forecaster, write_forecast_report
+from royalebench.forecasting import (
+    PersistenceForecaster,
+    evaluate_forecaster,
+    write_forecast_report,
+)
 from royalebench.observations import observation_hash
 
 
-def _observation(tick: int, *, hp: int = 100, elixir: float = 5.0) -> dict:
+def _observation(
+    tick: int,
+    decision_id: int,
+    *,
+    hp: int = 100,
+    elixir: float = 5.0,
+) -> dict:
     towers = {
         "own_king": {"hp": hp},
         "own_left": {"hp": hp},
@@ -24,7 +34,7 @@ def _observation(tick: int, *, hp: int = 100, elixir: float = 5.0) -> dict:
     return {
         "schema": "royalebench.observation.v1",
         "match_id": "forecast-match",
-        "decision_id": tick,
+        "decision_id": decision_id,
         "seat": 0,
         "game": {"tick": tick},
         "own": {"elixir": elixir, "towers": towers},
@@ -38,15 +48,15 @@ def _observation(tick: int, *, hp: int = 100, elixir: float = 5.0) -> dict:
 def _write_split(path, length=5):
     with gzip.open(path, "wt", encoding="utf-8") as handle:
         for index in range(length):
-            observation = _observation(index * 5)
-            next_observation = _observation((index + 1) * 5)
+            observation = _observation(index * 5, index)
+            next_observation = _observation((index + 1) * 5, index + 1)
             record = {
                 "schema": "royalebench.transition.v1",
                 "match_id": "forecast-match",
                 "seed": 9,
                 "seat": 0,
                 "decision_id": index,
-                "engine_tick": index * 5,
+                "engine_tick": (index + 1) * 5,
                 "action": {"schema": "royalebench.action.v1", "type": "wait"},
                 "observation": observation,
                 "next_observation": next_observation,
@@ -55,6 +65,10 @@ def _write_split(path, length=5):
                 "match_outcome": "seat0_win",
             }
             handle.write(json.dumps(record) + "\n")
+    _write_manifest(path)
+
+
+def _write_manifest(path):
     digest = hashlib.sha256(path.read_bytes()).hexdigest()
     manifest = {
         "dataset_version": 1,
@@ -63,6 +77,18 @@ def _write_split(path, length=5):
     (path.parent / "dataset_manifest.json").write_text(
         json.dumps(manifest), encoding="utf-8"
     )
+
+
+def _read_records(path):
+    with gzip.open(path, "rt", encoding="utf-8") as handle:
+        return [json.loads(line) for line in handle if line.strip()]
+
+
+def _write_records(path, records):
+    with gzip.open(path, "wt", encoding="utf-8") as handle:
+        for record in records:
+            handle.write(json.dumps(record) + "\n")
+    _write_manifest(path)
 
 
 def test_persistence_forecaster_scores_perfectly_on_static_trajectory(tmp_path):
@@ -104,6 +130,8 @@ def test_forecaster_receives_only_current_observation_and_action_prefix(tmp_path
     assert all("match_outcome" not in observation for observation, _, _ in model.calls)
     assert [len(actions) for _, actions, _ in model.calls] == [1] * 4 + [2] * 3
     assert all(ticks > 0 for _, _, ticks in model.calls)
+    assert [ticks for _, _, ticks in model.calls[:4]] == [5] * 4
+    assert [ticks for _, _, ticks in model.calls[4:]] == [10] * 3
 
 
 def test_forecast_evaluator_rejects_unavailable_horizon(tmp_path):
@@ -119,11 +147,11 @@ def test_forecast_report_refuses_to_overwrite(tmp_path):
     with pytest.raises(FileExistsError):
         write_forecast_report({"schema": "test"}, destination)
 
+
 def test_forecast_evaluator_rejects_corrupted_observation_hash(tmp_path):
     split = tmp_path / "test.jsonl.gz"
     _write_split(split)
-    with gzip.open(split, "rt", encoding="utf-8") as handle:
-        records = [json.loads(line) for line in handle]
+    records = _read_records(split)
     records[0]["observation_hash"] = "0" * 64
     with gzip.open(split, "wt", encoding="utf-8") as handle:
         for record in records:
@@ -140,4 +168,26 @@ def test_forecast_evaluator_rejects_modified_dataset_shard(tmp_path):
     _write_split(split)
     split.write_bytes(split.read_bytes() + b"tampered")
     with pytest.raises(ValueError, match="SHA-256 mismatch"):
+        evaluate_forecaster(split, PersistenceForecaster(), horizons=(1,))
+
+
+def test_forecast_evaluator_rejects_missing_decision_transition(tmp_path):
+    split = tmp_path / "test.jsonl.gz"
+    _write_split(split, length=5)
+    records = _read_records(split)
+    _write_records(split, records[:2] + records[3:])
+
+    with pytest.raises(ValueError, match="non-contiguous decision sequence"):
+        evaluate_forecaster(split, PersistenceForecaster(), horizons=(1,))
+
+
+def test_forecast_evaluator_rejects_broken_observation_chain(tmp_path):
+    split = tmp_path / "test.jsonl.gz"
+    _write_split(split, length=4)
+    records = _read_records(split)
+    records[1]["observation"]["own"]["elixir"] = 4.5
+    records[1]["observation_hash"] = observation_hash(records[1]["observation"])
+    _write_records(split, records)
+
+    with pytest.raises(ValueError, match="broken observation chain"):
         evaluate_forecaster(split, PersistenceForecaster(), horizons=(1,))
