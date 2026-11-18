@@ -93,6 +93,19 @@ def test_round_robin_runs_paired_seat_swaps_and_reports_wdl_ci(tmp_path):
     match_rows = json.loads((tmp_path / "matches.json").read_text())
     assert {row["left_agent_seat"] for row in match_rows} == {0, 1}
 
+    manifest = json.loads((tmp_path / "tournament_manifest.json").read_text())
+    assert manifest["schedule"] == "round-robin-paired-seat-swap-v1"
+    assert manifest["total_matches"] == 6
+    assert len(manifest["match_manifests"]) == 6
+    assert set(manifest["artifacts"]) == {
+        "matches.json",
+        "tournament.json",
+        "leaderboard.csv",
+    }
+    for match in manifest["match_manifests"]:
+        assert len(match["sha256"]) == 64
+        assert (tmp_path / match["path"]).is_file()
+
 
 def test_tournament_refuses_to_overwrite_existing_match_results(tmp_path):
     matches = tmp_path / "matches"
@@ -113,3 +126,23 @@ def test_tournament_refuses_to_overwrite_existing_match_results(tmp_path):
         assert "choose a new" in str(exc)
     else:
         raise AssertionError("expected output collision to be rejected")
+
+
+
+def test_tournament_refuses_to_overwrite_summary_artifacts(tmp_path):
+    (tmp_path / "tournament.json").write_text("existing")
+    runner = TournamentRunner(
+        lambda ticks: SeatZeroWinnerEngine(ticks),
+        profile="test-profile",
+        profile_ticks=5,
+    )
+    factories = {
+        "agent-a": lambda: DrawAgent("agent-a"),
+        "agent-b": lambda: DrawAgent("agent-b"),
+    }
+    try:
+        runner.run_round_robin(factories, [1, 2, 3], output_dir=tmp_path)
+    except FileExistsError as exc:
+        assert "choose a new tournament output directory" in str(exc)
+    else:
+        raise AssertionError("expected tournament summary overwrite protection")
