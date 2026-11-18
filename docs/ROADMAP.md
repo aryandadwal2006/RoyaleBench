@@ -84,7 +84,7 @@ Visual agents, real-time wall-clock competition, deck construction, alternate-en
 - [x] Record data provenance, split membership, transition counts and SHA-256 hashes.
 - [x] Make gzip output deterministic and prevent accidental overwrite of an existing dataset.
 - [x] Define ForecastRequestV1 and ForecastResponseV1 schemas bound to observation hashes and forecast horizons.
-- [ ] Implement persistence and simple event/state forecasting baselines.
+- [x] Implement a persistence baseline and action-conditioned multi-horizon forecasting evaluator.
 - [x] Implement multi-horizon metrics for visible tower HP, elixir, entity-type precision/recall/F1 and entity-count error, skipping missing numeric fields.
 - [x] Add held-out prediction evaluation CLI and JSON report generation.
 - [x] Keep outcomes and future observations outside the predictor call; test the action-prefix input contract.
@@ -92,7 +92,7 @@ Visual agents, real-time wall-clock competition, deck construction, alternate-en
 
 ## Remaining release work
 
-1. Add observation-hash verification and source dataset manifest validation to forecasting evaluation; then support learned predictors through a documented adapter entry point.
+1. Add a documented learned-predictor adapter entry point and broaden forecasting metrics to entity identity, movement and event timing where CRForge exposes reliable stable identifiers.
 2. Finish protocol and FAIR observation audits, including hidden-state leakage and opponent-elixir accounting edge cases.
 3. Reconcile FirstLight and Hasty policies: inspect pinned source, checkpoint availability, licences, input/output semantics and card/version compatibility. If adaptation is not defensible, document them as external references rather than forcing them into v1.
 4. Add canonical replay/result fingerprints and paper-ready CSV/JSON summaries.
