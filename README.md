@@ -2,60 +2,71 @@
 
 **A reproducible competitive benchmark for AI agents in Clash Royale-like real-time battles.**
 
-RoyaleBench provides the game environment, fair observations, opponent-memory bookkeeping, action execution, match scheduling, latency measurement, replay logging, and rankings. Researchers bring the agent: an LLM/VLM, learned world model plus planner, RL policy, scripted policy, or another system that implements the documented adapter.
+RoyaleBench provides a pinned offline battle environment, player-visible observations, a common agent interface, tournament execution, trajectory export and ratings. Researchers supply a policy: scripted, RL, LLM, or a model-based controller.
 
-## Design status
+## V1 scope
 
-This repository is at the architecture and bootstrap stage. The initial design is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Decisions about upstream code and licensing are in [docs/REUSE_PLAN.md](docs/REUSE_PLAN.md). The implementation sequence is in [docs/ROADMAP.md](docs/ROADMAP.md).
+- One canonical simulator: [CRForge](https://github.com/voonhous/crforge), pinned as a submodule.
+- Fixed mirrored Hog 2.6 deck, equal card/tower levels, deterministic match seeds.
+- CRForge's 18 × 32 tile-centre action grid and native PlayerCommands placement semantics.
+- MASK_ALL_TILES=1: every tap tile is available for a playable card slot; CRForge retains its own placement search.
+- Structured player-visible observations only. Hidden opponent hand, next card, hidden elixir and simulator internals are excluded.
+- Paused-clock matches with separate fast-250ms-v1 and llm-api-1s-v1 cadence ratings.
+- Random-legal and rule-based baselines, plus a configurable OpenAI-compatible LLM agent.
+- Automated match logs, Glicko-2 tournament ratings, and match-level trajectory train/validation/test splits.
+- The trajectory dataset is generated automatically by matches; no manually curated training dataset is required.
 
-**Proposed v1 choices**
-- One canonical battle engine: [crforge](https://github.com/voonhous/crforge), pinned as an upstream submodule.
-- Fixed, mirrored decks for the initial competition; deck-building is out of scope for v1.
-- Two observation modalities: structured player-visible state and rendered pixels. They receive separate rankings.
-- One versioned action protocol, with native engine placement semantics and an explicit placement-resolution contract.
-- A common deterministic public-memory layer for opponent elixir and card-cycle deductions.
-- Separate strategic-strength (lockstep) and real-time (wall-clock) evaluations.
-- Match outcomes drive agent ratings. Prediction accuracy is reported separately for world models.
+Visual agents, real-time wall-clock ratings, multi-engine tournaments, deck-building, new RL training and live-game account automation are outside v1.
 
-## Repository layout
+## Windows setup
 
-Start with [the architecture](docs/ARCHITECTURE.md), [agent protocol](docs/AGENT_PROTOCOL.md), [world-model plugin API](docs/WORLD_MODEL_API.md), [target repo structure](docs/REPO_STRUCTURE.md), [architecture decisions](docs/DECISIONS.md), [reuse plan](docs/REUSE_PLAN.md), and [implementation roadmap](docs/ROADMAP.md). The intended layout separates the engine adapter, observation/memory layer, agent SDK, tournament runner, evaluation, visualizer integration, schemas, and optional human interface.
+Requirements: Git, Python 3.11+, Java 21.
 
-## Upstream references
-
-The upstream implementations are not silently copied into RoyaleBench's own source tree. Their exact upstream commits are pinned as Git submodules under third_party/upstream. A recursive clone checks out the source inside those folders: git clone --recurse-submodules https://github.com/aryandadwal2006/RoyaleBench.git. See [third_party/README.md](third_party/README.md) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
-
-## Safety and scope
-
-RoyaleBench targets offline simulation and human-operated play in its own research interface. It is not an automation client for official Clash Royale accounts, and it will not automate, log into, or control live Supercell accounts.
-
-## Current limitations
-
-- The engine must pass a local acceptance test before being declared the benchmark's supported runtime.
-- Higher-resolution / continuous placement is a proposed extension, not an existing crforge feature.
-- The shared observation and memory protocol still needs implementation and tests against the canonical engine.
-- Game data tables and original game assets are not bundled. Their provenance and redistribution permissions require separate review.
-
-
-## Implemented bootstrap
-
-The initial engine-independent Python protocol scaffold is present:
-- typed wait/play/ability action objects;
-- action-resolution validation for tile-centre and half-tile coordinates;
-- request-bound response validation using request ID, decision ID and observation hash;
-- unit tests for malformed actions, invalid coordinates and stale/mismatched responses;
-- GitHub Actions workflow for pytest and Ruff on Python 3.11/3.12.
-
-This does **not** yet include a running crforge adapter, ObservationV1 builder, match runner, memory tracker, tournament scheduler or Glicko-2 implementation. Those are explicitly gated in the [roadmap](docs/ROADMAP.md). The half-tile validator is protocol code only; the crforge 36 × 64 action schema/mask patch still needs to be implemented and accepted against native placement tests.
-
-Install the protocol scaffold locally:
-
-```bash
+\`\`\`powershell
 git clone --recurse-submodules https://github.com/aryandadwal2006/RoyaleBench.git
 cd RoyaleBench
-python -m pip install -e ".[dev]"
+.\scripts\bootstrap_upstreams.ps1
+.\scripts\build_engine.ps1
+\`\`\`
+
+CRForge's game tables are built locally from its configured CDN asset source. Original data tables and game assets are not committed to RoyaleBench.
+
+## Commands
+
+\`\`\`powershell
+python -m royalebench config-check
 python -m pytest
 python -m ruff check src tests
-```
+python -m royalebench smoke
+python -m royalebench tournament --agents random-legal-v1,hog-cycle-rules-v1 --seeds 11,22
+python -m royalebench dataset --matches results/tournament/matches --output results/dataset
+\`\`\`
 
-The GitHub Actions checks run on pushes and pull requests. The pinned upstream source trees are retrieved by the recursive clone/bootstrap script; they are not duplicated into the RoyaleBench package.
+The integrated Windows acceptance script will run tests, a small paired tournament and dataset generation:
+
+\`\`\`powershell
+.\scripts\validate_v1.ps1
+\`\`\`
+
+## Optional LLM participant
+
+Set credentials in the current PowerShell session. No credentials are written to repository files:
+
+\`\`\`powershell
+$env:ROYALEBENCH_LLM_API_KEY = "..."
+$env:ROYALEBENCH_LLM_MODEL = "your-model-id"
+$env:ROYALEBENCH_LLM_BASE_URL = "https://api.openai.com/v1"
+python -m royalebench tournament --agents random-legal-v1,llm --seeds 11,22
+\`\`\`
+
+The LLM adapter expects an OpenAI Chat Completions-compatible endpoint and JSON-object output. Configure a model identifier supported by your endpoint. Provider usage and client latency are recorded when returned by the endpoint.
+
+## Repository status
+
+The engine adapter, ObservationV1 converter, action protocol, baseline agents, concurrent match runner, Glicko-2 ratings, paired tournament runner, LLM adapter and match-level trajectory exporter are implemented. External pretrained checkpoints are not included in the official baseline set until their observation/action adapters pass compatibility and reproducibility checks.
+
+See [docs/ROADMAP.md](docs/ROADMAP.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+## Licensing and game data
+
+Upstream source repositories remain pinned as submodules; their source is not copied into the RoyaleBench package. Supercell game tables, graphics, sounds and trademarks are not bundled or relicensed by upstream source licenses. Check upstream notices and applicable game-data use conditions before redistribution.

@@ -192,6 +192,7 @@ class MatchRunner:
                         obs = observations[seat]
                         obs_hash = observation_hash(obs)
                         request_id = f"{match_id}:{decision_id}:{seat}"
+                        telemetry = getattr(agents[seat], "last_telemetry", None)
                         envelope = {
                             "schema": RESPONSE_SCHEMA,
                             "request_id": request_id,
@@ -199,6 +200,8 @@ class MatchRunner:
                             "observation_hash": obs_hash,
                             "action": raw_action,
                         }
+                        if isinstance(telemetry, dict):
+                            envelope["telemetry"] = telemetry
                         parsed = AgentResponse.from_mapping(
                             envelope,
                             expected_request_id=request_id,
