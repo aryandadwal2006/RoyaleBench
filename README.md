@@ -111,7 +111,7 @@ This process boundary limits accidental credential exposure and provides startup
 
 ## Repository status
 
-The CRForge adapter, ObservationV1 converter, public-memory cycle tracker, action protocol, baseline agents, concurrent match runner, Glicko-2 ratings, paired tournament runner, OpenAI-compatible LLM adapter, JSONL subprocess adapter and match-level trajectory exporter are implemented. These components still require the final local acceptance run against your installed CRForge build. External pretrained checkpoints are not included in the official leaderboard until their observation/action adapters pass compatibility and reproducibility checks.
+The CRForge adapter, ObservationV1 converter, public-memory cycle tracker, action protocol, baseline agents, concurrent match runner, Glicko-2 ratings, paired tournament runner, OpenAI-compatible LLM adapter, JSONL subprocess adapter, match-level trajectory exporter, tournament provenance manifest and persistence-based multi-horizon forecasting evaluator are implemented. These components still require the final local acceptance run against your installed CRForge build. The persistence predictor is a sanity baseline, not a learned world model. External pretrained checkpoints are not included in the official leaderboard until their observation/action adapters pass compatibility and reproducibility checks.
 
 See [docs/ROADMAP.md](docs/ROADMAP.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
