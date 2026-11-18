@@ -105,7 +105,7 @@ foreach ($CandidateHome in $JavaHomeCandidates) {
 
     $CandidateJavaExe = Join-Path $CandidateHome "bin\java.exe"
     if (-not (Test-Path -LiteralPath $CandidateJavaExe -PathType Leaf)) { continue }
-    $CandidateJavaOutput = & cmd.exe /d /c ('"' + $CandidateJavaExe + '" -version 2>&1')
+    $CandidateJavaOutput = & cmd.exe /d /c ('call "' + $CandidateJavaExe + '" -version 2>&1')
     $CandidateJavaExitCode = $LASTEXITCODE
     $CandidateJavaVersion = [string]($CandidateJavaOutput | Select-Object -First 1)
     if ($CandidateJavaExitCode -ne 0 -or $CandidateJavaVersion -notmatch '"21\.') { continue }
