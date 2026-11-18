@@ -13,6 +13,7 @@ $Started = Get-Date
 $RunId = Get-Date -Format "yyyyMMdd-HHmmss"
 $ValidationRoot = Join-Path $Root ("results\validation-" + $RunId)
 $TournamentRoot = Join-Path $ValidationRoot "tournament"
+$ExternalTournamentRoot = Join-Path $ValidationRoot "external-agent-tournament"
 $DatasetRoot = Join-Path $ValidationRoot "trajectory_dataset"
 
 Write-Host "=== RoyaleBench v1 integrated validation ==="
@@ -62,11 +63,17 @@ Write-Host "=== Headless paired tournament ==="
 & $Python -m royalebench tournament --profile $Profile --agents "random-legal-v1,hog-cycle-rules-v1" --seeds $Seeds --output $TournamentRoot
 if ($LASTEXITCODE -ne 0) { throw "One or more tournament matches failed." }
 
+Write-Host "=== External JSONL agent integration tournament ==="
+$WorkerCommand = ConvertTo-Json -Compress @($Python, "examples/agents/hog_cycle_jsonl.py")
+& $Python -m royalebench tournament --profile $Profile --agents "random-legal-v1,external-hog" --external-agent-name "external-hog" --external-agent-command $WorkerCommand --external-agent-cwd $Root --seeds $Seeds --output $ExternalTournamentRoot
+if ($LASTEXITCODE -ne 0) { throw "External JSONL agent tournament failed." }
+
 Write-Host "=== Automatic trajectory dataset ==="
 & $Python -m royalebench dataset --matches (Join-Path $TournamentRoot "matches") --output $DatasetRoot
 if ($LASTEXITCODE -ne 0) { throw "Trajectory dataset export failed." }
 
 $TournamentJson = Get-Content (Join-Path $TournamentRoot "tournament.json") -Raw | ConvertFrom-Json
+$ExternalTournamentJson = Get-Content (Join-Path $ExternalTournamentRoot "tournament.json") -Raw | ConvertFrom-Json
 $DatasetJson = Get-Content (Join-Path $DatasetRoot "dataset_manifest.json") -Raw | ConvertFrom-Json
 $Report = [ordered]@{
     status = "passed"
@@ -80,12 +87,18 @@ $Report = [ordered]@{
         completed_matches = $TournamentJson.completed_matches
         failed_matches = $TournamentJson.void_or_failed_matches
     }
+    external_agent_tournament = @{
+        total_matches = $ExternalTournamentJson.total_matches
+        completed_matches = $ExternalTournamentJson.completed_matches
+        failed_matches = $ExternalTournamentJson.void_or_failed_matches
+    }
     dataset = @{
         total_matches = $DatasetJson.total_matches
         splits = $DatasetJson.splits
     }
     output = @{
         tournament = $TournamentRoot
+        external_agent_tournament = $ExternalTournamentRoot
         dataset = $DatasetRoot
     }
 }
