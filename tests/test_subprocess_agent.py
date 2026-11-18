@@ -17,7 +17,8 @@ def _worker_body(action_block: str) -> str:
         "    request = json.loads(line)\n"
         "    kind = request.get('type')\n"
         "    if kind == 'start':\n"
-        "        print(json.dumps({'schema': 'royalebench.agent-event.v1', 'type': 'ready'}), flush=True)\n"
+        "        print(json.dumps({'schema': 'royalebench.agent-event.v1', " 
+        "'type': 'ready'}), flush=True)\n"
         "    elif kind == 'act':\n"
         + "\n".join("        " + line for line in action_block.splitlines())
         + "\n    elif kind == 'close':\n"
@@ -43,7 +44,10 @@ print(json.dumps({
     'decision_id': request['decision_id'],
     'observation_hash': request['observation_hash'],
     'action': {'schema': 'royalebench.action.v1', 'type': 'wait'},
-    'telemetry': {'parent_secret_inherited': __import__('os').environ.get('ROYALEBENCH_TEST_PARENT_SECRET') is not None}
+    'telemetry': {
+        'parent_secret_inherited':
+            __import__('os').environ.get('ROYALEBENCH_TEST_PARENT_SECRET') is not None
+    }
 }), flush=True)
 """
     agent = SubprocessAgent(
