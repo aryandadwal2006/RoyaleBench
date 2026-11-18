@@ -77,11 +77,15 @@ def build_observation(
     hand_costs = values("hand_cost")
     hand_pending = values("hand_pending")
     hand_forms = values("hand_form")
+    elixir_scale = int(schema.scales.get("elixir_scale", 10_000))
+    if elixir_scale <= 0:
+        raise RuntimeError(f"invalid CRForge elixir scale: {elixir_scale}")
     hand = [
         {
             "slot": slot,
             "card": _name(vocabulary, card_id),
-            "cost_elixir": hand_costs[slot],
+            "cost_elixir_scaled": hand_costs[slot],
+            "cost_elixir": hand_costs[slot] / elixir_scale,
             "pending": bool(hand_pending[slot]),
             "form": hand_forms[slot],
         }
@@ -209,7 +213,9 @@ def build_observation(
         },
         "own": {
             "elixir_scaled": scalar("elixir"),
+            "elixir": scalar("elixir") / elixir_scale,
             "elixir_reserved_scaled": scalar("elixir_reserved"),
+            "elixir_reserved": scalar("elixir_reserved") / elixir_scale,
             "hand": hand,
             "next_card": next_card,
             "deck": deck,
@@ -221,6 +227,8 @@ def build_observation(
         },
         "opponent": {
             "estimated_elixir_scaled": scalar("enemy_elixir"),
+            "estimated_elixir": scalar("enemy_elixir") / elixir_scale,
+            "elixir_estimate_source": "crforge-public-play-and-regeneration-accounting",
             "cards_seen": enemy_seen,
             "play_count": scalar("enemy_play_count"),
             "recent_plays": recent_plays,
@@ -243,7 +251,7 @@ def build_observation(
             "data_version": vector.data_version,
             "content_sha": vector.content_sha,
             "vocabulary_hash": vector.vocabulary_hash,
-            "elixir_scale": schema.scales.get("elixir_scale", 10_000),
+            "elixir_scale": elixir_scale,
             "tile_units": schema.tile_units,
         },
     }
