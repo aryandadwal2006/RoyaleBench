@@ -31,7 +31,7 @@ class FakeEngine:
             "opponent": {},
             "entities": [],
             "legal_actions": {"playable_slots": [], "ability_slots": []},
-            "game": {"tick": self.tick},
+            "game": {"tick": self.tick, "entity_overflow": 0},
             "engine": {"data_version": "fake"},
         }
 
@@ -272,6 +272,6 @@ def test_runner_voids_match_when_next_observation_omits_entities(tmp_path):
     )
     assert result.status == "engine_fault"
     assert result.outcome == "void"
-    assert result.decisions == 0
+    assert result.decisions == 1
     assert result.fault["kind"] == "observation_overflow"
     assert engine.closed
