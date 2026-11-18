@@ -117,7 +117,7 @@ def test_hog_v1_public_enemy_elixir_matches_native_truth_during_play():
         vector.reset([919], deck, deck)
         field = vector.schema.header["enemy_elixir"][0]
 
-        for _ in range(160):
+        for decision in range(160):
             actions = np.zeros((1, 2), dtype=np.int32)
             for seat in (0, 1):
                 legal = np.flatnonzero(vector.masks[0, seat])
@@ -131,7 +131,7 @@ def test_hog_v1_public_enemy_elixir_matches_native_truth_during_play():
                 counted = int(vector.observations[0, seat, field])
                 truth = int(battle.getMatch().side(1 - seat).getElixir())
                 assert counted == truth, (
-                    f"decision {_}, seat {seat}: public enemy elixir {counted} "
+                    f"decision {decision}, seat {seat}: public enemy elixir {counted} "
                     f"differs from native side elixir {truth}"
                 )
             if bool(vector.dones[0]):
