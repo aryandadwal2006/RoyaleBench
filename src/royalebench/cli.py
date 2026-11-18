@@ -170,7 +170,7 @@ def build_parser() -> argparse.ArgumentParser:
     common(tournament)
     tournament.add_argument("--profile", default="fast-250ms-v1")
     tournament.add_argument("--agents", default="random-legal-v1,hog-cycle-rules-v1")
-    tournament.add_argument("--seeds", default="11,22")
+    tournament.add_argument("--seeds", default="11,22,33")
     tournament.add_argument("--timeout", type=float, default=120.0)
     tournament.add_argument("--output", default="results/tournament")
     tournament.set_defaults(handler=_cmd_tournament)

@@ -1,7 +1,7 @@
 param(
     [string]$Python = "python",
     [switch]$SkipBuild,
-    [string]$Seeds = "11,22",
+    [string]$Seeds = "11,22,33",
     [ValidateSet("fast-250ms-v1", "llm-api-1s-v1")]
     [string]$Profile = "fast-250ms-v1"
 )
@@ -10,7 +10,8 @@ $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $PSScriptRoot
 Set-Location $Root
 $Started = Get-Date
-$ValidationRoot = Join-Path $Root "results\validation"
+$RunId = Get-Date -Format "yyyyMMdd-HHmmss"
+$ValidationRoot = Join-Path $Root ("results\validation-" + $RunId)
 $TournamentRoot = Join-Path $ValidationRoot "tournament"
 $DatasetRoot = Join-Path $ValidationRoot "trajectory_dataset"
 
@@ -55,9 +56,6 @@ Write-Host "=== Configuration ==="
 & $Python -m royalebench config-check
 if ($LASTEXITCODE -ne 0) { throw "V1 configuration validation failed." }
 
-if (Test-Path $ValidationRoot) {
-    Remove-Item -Recurse -Force $ValidationRoot
-}
 New-Item -ItemType Directory -Force -Path $ValidationRoot | Out-Null
 
 Write-Host "=== Headless paired tournament ==="

@@ -6,6 +6,7 @@ import gzip
 import hashlib
 import io
 import json
+from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -236,7 +237,7 @@ def build_dataset(
         "dataset_version": 1,
         "created_by": "royalebench",
         "split_seed": int(split_seed),
-        "split_policy": "stable-sha256-match-level",
+        "split_policy": "stable-sha256-seed-cluster-level",
         "engine": first_engine,
         "matches_root": str(source_root),
         "total_matches": len(sources),
