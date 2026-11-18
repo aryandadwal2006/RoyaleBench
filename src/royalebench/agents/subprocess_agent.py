@@ -215,6 +215,10 @@ class SubprocessAgent:
             }
         )
 
+    def abort_pending(self) -> None:
+        """Terminate the worker immediately when the shared runner deadline expires."""
+        self._terminate()
+
     def _terminate(self) -> None:
         process = self._process
         self._process = None
