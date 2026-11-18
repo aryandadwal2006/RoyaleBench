@@ -74,6 +74,8 @@ The next run successfully resolved `jvm.dll` and reached the native adapter chec
 
 The next full integration run completed all 6 paired baseline matches and passed all 118 Python tests, including the three native adapter tests, as well as Ruff and config-check. It then stopped before the external-worker match because Windows PowerShell stripped the embedded quotes from the JSON command argument. The validation script now writes the argv array to a UTF-8 JSON file and passes its path; the CLI accepts this file form and tests both the parser and mutual-exclusion behavior.
 
+The native test output also contained repeated Windows access-violation diagnostics from JPype/JVM startup even though the tests completed. JPype documents that pytest's Python fault handler can report the JVM's internally handled low-level exceptions as misleading fatal errors. The native test module now resets the Python fault handler using JPype's recommended enable/disable sequence immediately before native tests.
+
 Full v1 acceptance remains pending a successful rerun.
 
 ## Outputs
