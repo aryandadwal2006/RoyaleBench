@@ -45,7 +45,7 @@ def test_forecast_request_and_response_schemas_validate():
         "observation_hash": "a" * 64,
         "horizon_ticks": 5,
         "observation": observation,
-        "action": action,
+        "actions": [action],
     }
     response = {
         "schema": "royalebench.forecast-response.v1",
@@ -65,7 +65,7 @@ def test_forecast_schemas_reject_mismatched_or_missing_contract_fields():
         "observation_hash": "not-a-hash",
         "horizon_ticks": 0,
         "observation": _observation(),
-        "action": {"schema": "royalebench.action.v1", "type": "wait"},
+        "actions": [{"schema": "royalebench.action.v1", "type": "wait"}],
     }
     errors = list(_validator("forecast-request.v1.schema.json").iter_errors(request))
     assert len(errors) >= 2
