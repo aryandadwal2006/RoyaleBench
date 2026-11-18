@@ -120,6 +120,23 @@ def _agent_factories(
     return selected
 
 
+def _parse_external_command(value: str) -> list[str]:
+    """Parse and validate an external worker argv before CLI dispatch."""
+    try:
+        command = json.loads(value)
+    except json.JSONDecodeError as exc:
+        raise argparse.ArgumentTypeError(f"invalid JSON command: {exc}") from exc
+    if (
+        not isinstance(command, list)
+        or not command
+        or any(not isinstance(part, str) or not part for part in command)
+    ):
+        raise argparse.ArgumentTypeError(
+            "external agent command must be a non-empty JSON array of non-empty strings"
+        )
+    return command
+
+
 def _load(args: argparse.Namespace):
     path = Path(args.config) if args.config else _root() / "configs" / "v1.yaml"
     return load_config(path)
@@ -259,7 +276,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     tournament.add_argument(
         "--external-agent-command",
-        type=json.loads,
+        type=_parse_external_command,
         default=None,
         help='JSON string array command, for example \'["python","agent.py"]\'',
     )
