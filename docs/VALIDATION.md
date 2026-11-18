@@ -66,7 +66,9 @@ The observed Windows run used Python 3.14.5, Java 21.0.13 and the `-SkipBuild` s
 
 No tournament match, trajectory dataset or forecast was produced by that partial run. It does not establish full v1 acceptance. Run the first-time command above without `-SkipBuild`.
 
-A subsequent full-build attempt on 2026-11-18 created the install distribution (six JAR files), generated the pinned game tables, and passed CRForge's Gradle test task. In the Python suite, 114 tests passed but the three native adapter tests failed because JPype could not find `jvm.dll`, even though the Java 21 command-line executable worked. The updated validation script now resolves and checks the Java 21 JDK home, sets `JAVA_HOME` for child processes, and runs a JPype JVM-path preflight before pytest. Full v1 acceptance remains pending a successful rerun.
+A subsequent full-build attempt on 2026-11-18 created the install distribution (six JAR files), generated the pinned game tables, and passed CRForge's Gradle test task. In the Python suite, 114 tests passed but the three native adapter tests failed because JPype could not find `jvm.dll`, even though the Java 21 command-line executable worked. The validation script was updated to resolve and check the Java 21 JDK home, set `JAVA_HOME` for child processes, and run a JPype JVM-path preflight before pytest.
+
+The next run successfully resolved `jvm.dll` and reached the native adapter checks. All three then exposed the same card-name mismatch: the public card name `IceGolem` was not recognized because the pinned table uses the internal row name `IceGolemite`. The resolver now maps that display name to the exact pinned row, and a unit test locks the mapping for the complete Hog 2.6 deck (`IceGolemite`, `IceSpirits` and `Log` included). Full v1 acceptance remains pending a successful rerun.
 
 ## Outputs
 
