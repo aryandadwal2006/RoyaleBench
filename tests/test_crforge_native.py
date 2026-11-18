@@ -10,6 +10,18 @@ from royalebench.config import V1Config
 from royalebench.engine.crforge import _resolve_deck_rows
 
 
+@pytest.fixture(scope="module", autouse=True)
+def _reset_fault_handlers_for_jpype():
+    """Let the JVM own its fault handlers instead of pytest's Python handler."""
+    import faulthandler
+
+    # JPype documents this reset for pytest: the JVM deliberately uses
+    # low-level Windows exceptions internally, which Python's handler can
+    # otherwise print as misleading fatal access-violation reports.
+    faulthandler.enable()
+    faulthandler.disable()
+
+
 def _engine_paths(config: V1Config) -> tuple[Path, Path]:
     root = Path(__file__).resolve().parents[1]
     install = Path(
