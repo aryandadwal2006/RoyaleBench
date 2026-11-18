@@ -1,6 +1,6 @@
 # RoyaleBench v1 benchmark card
 
-**Document status:** Implementation description, pending final local engine acceptance.  
+**Document status:** v1 candidate specification; final headless adapter acceptance remains pending.  
 **Benchmark version:** v1.0 candidate  
 **Canonical simulator:** CRForge commit `fa5959055c590a493d62c8dbc804e602832d08a6`  
 **Game-data target:** 16.635.8  
@@ -66,11 +66,12 @@ External pretrained agents are not official leaderboard entries until licensing,
 - CRForge is a deterministic offline engine with a bounded conformance/fidelity scope. Results are conditional on its pinned commit and locally obtained game data.
 - The engine's game tables are not distributed by RoyaleBench. Users must obtain/build them through the documented upstream process.
 - The subprocess adapter restricts inherited environment variables and enforces timeouts, but is not an OS/container security boundary.
-- Opponent elixir is CRForge's seat-side `ElixirCount` accounting, explicitly derived from what that seat can see rather than the opponent's hidden elixir field. CRForge documents one known source of drift: champion ability refunds that are not shown to the opponent. The fixed Hog 2.6 v1 deck has no champion, so that refund path is outside the v1 deck. A native v1-specific differential test is included in the acceptance suite but has not yet been run. Public opponent card-cycle inference remains bounded by what the play ledger has revealed.
+- Opponent elixir is CRForge's seat-side `ElixirCount` accounting, derived from what that seat can see rather than the opponent's hidden elixir field. CRForge documents a possible source of drift from champion ability refunds not shown to the opponent. The fixed Hog 2.6 v1 deck has no champion, so that path is outside the v1 deck. A native v1-specific differential test is included in the acceptance suite. Public opponent card-cycle inference remains bounded by what the play ledger has revealed.
 - Forecasting metrics cover visible tower HP, own/public-opponent elixir, entity-type counts, stable seat-local entity IDs, matched-entity position and visible HP errors, and entity-count error. Public event-timing metrics remain future work.
 - Runtime guards verify the actual CRForge source commit, game-data version and content SHA, effective cadence, levels, tick limit, mask/id versions and 20-tick PlayerCommands delay. Reset-time guards verify the actual mirrored deck, card levels, equal tower HP and initial public-elixir accounting.
-- The final validation script runs CRForge's pinned `:env:test` native observation/elixir suite plus RoyaleBench's Python and native integration tests. These tests are implemented but have not yet been run in the user's Windows environment. The desktop visualizer smoke test does not prove headless adapter correctness.
-- The upstream CRForge test failures previously observed by the project owner have not yet been reconciled with the exact test log.
+- In the 2026-11-18 Windows partial run, the pinned CRForge `:env:test` Gradle task completed successfully. RoyaleBench's Python suite reported 114 passed and 3 skipped; the skipped cases were the three native adapter tests in `tests/test_crforge_native.py`, because the `env/build/install/env` runtime distribution had not been built. The headless tournament then stopped before starting a match because the runtime JARs were absent.
+- The desktop visualizer smoke test and a successful upstream Gradle test task do not by themselves prove headless adapter correctness. Final acceptance requires the Python native tests to execute, both headless tournaments to complete, and dataset/forecast evaluation to finish.
+
 
 ## Reproducibility
 
