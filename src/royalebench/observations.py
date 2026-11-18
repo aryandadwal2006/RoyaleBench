@@ -84,8 +84,7 @@ def build_observation(
         {
             "slot": slot,
             "card": _name(vocabulary, card_id),
-            "cost_elixir_scaled": hand_costs[slot],
-            "cost_elixir": hand_costs[slot] / elixir_scale,
+            "cost_elixir": hand_costs[slot],
             "pending": bool(hand_pending[slot]),
             "form": hand_forms[slot],
         }
