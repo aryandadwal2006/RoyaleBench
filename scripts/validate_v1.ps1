@@ -25,8 +25,10 @@ $VersionParts = $PythonVersion.Split(".")
 if ([int]$VersionParts[0] -lt 3 -or ([int]$VersionParts[0] -eq 3 -and [int]$VersionParts[1] -lt 11)) {
     throw "RoyaleBench requires Python 3.11 or newer; found $PythonVersion"
 }
-$JavaVersion = & java -version 2>&1 | Select-Object -First 1
-if ($LASTEXITCODE -ne 0 -or $JavaVersion -notmatch '"21\.') {
+$JavaOutput = & cmd.exe /d /c "java -version 2>&1"
+$JavaExitCode = $LASTEXITCODE
+$JavaVersion = $JavaOutput | Select-Object -First 1
+if ($JavaExitCode -ne 0 -or $JavaVersion -notmatch '"21\.') {
     throw "Java 21 is required. Detected: $JavaVersion"
 }
 Write-Host "Python: $PythonVersion"
