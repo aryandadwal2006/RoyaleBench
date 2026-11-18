@@ -22,6 +22,7 @@ from royalebench.protocol.responses import AgentResponse, RESPONSE_SCHEMA
 class MatchResult:
     match_id: str
     status: str
+    outcome: str
     seed: int
     winner: int | None
     crowns: tuple[int, int]
@@ -42,11 +43,7 @@ class AgentExecutionError(RuntimeError):
 
 
 class MatchRunner:
-    """Runs two agents on identical simulated decision ticks.
-
-    Agent calls are dispatched concurrently. The simulator is stepped only after both actions
-    have been returned and validated, so model latency does not change strategic-strength game time.
-    """
+    """Runs two agents on identical simulated decision ticks."""
 
     def __init__(
         self,
@@ -61,6 +58,8 @@ class MatchRunner:
             raise ValueError("profile_ticks must be positive")
         if request_timeout_s <= 0:
             raise ValueError("request_timeout_s must be positive")
+        if max_decisions < 1:
+            raise ValueError("max_decisions must be positive")
         self.engine = engine
         self.profile = profile
         self.profile_ticks = int(profile_ticks)
@@ -114,7 +113,6 @@ class MatchRunner:
         if len(agents) != 2:
             raise ValueError("a match needs exactly two agents")
         if agents[0].name == agents[1].name:
-            # Same policy is permitted for self-play, but identifiers in the manifest need seats.
             names = (f"{agents[0].name}@seat0", f"{agents[1].name}@seat1")
         else:
             names = (agents[0].name, agents[1].name)
@@ -127,6 +125,7 @@ class MatchRunner:
         illegal_counts = [0, 0]
         decision_count = 0
         status = "agent_error"
+        outcome = "undetermined"
         winner: int | None = None
         crowns = (0, 0)
         tick = 0
@@ -144,10 +143,7 @@ class MatchRunner:
             "response_schema": RESPONSE_SCHEMA,
             "action_resolution": ActionResolution.tile_center().resolution_id,
             "engine": self.engine.metadata,
-            "agents": [
-                {"name": agent.name, "seat": seat}
-                for seat, agent in enumerate(agents)
-            ],
+            "agents": [{"name": agent.name, "seat": seat} for seat, agent in enumerate(agents)],
         }
         if destination is not None:
             self._write_json(destination / "manifest.json", manifest)
@@ -169,7 +165,11 @@ class MatchRunner:
 
             with (
                 ThreadPoolExecutor(max_workers=2, thread_name_prefix="royalebench-agent") as pool,
-                gzip.open(trajectory_path, "wt", encoding="utf-8") if trajectory_path else _null_writer() as log,
+                (
+                    gzip.open(trajectory_path, "wt", encoding="utf-8")
+                    if trajectory_path is not None
+                    else _null_writer()
+                ) as log,
             ):
                 for decision_id in range(self.max_decisions):
                     futures = [
@@ -205,9 +205,7 @@ class MatchRunner:
                             expected_observation_hash=obs_hash,
                             resolution=ActionResolution.tile_center(),
                         )
-                        encoded, mask_open = self.engine.encode_action(
-                            seat, raw_action
-                        )
+                        encoded, mask_open = self.engine.encode_action(seat, raw_action)
                         action_ids[seat] = encoded
                         decision_records.append(
                             {
@@ -228,8 +226,8 @@ class MatchRunner:
                     tick = int(step.info.get("tick", tick))
                     illegal_counts[0] += int(step.info.get("illegal_0", 0))
                     illegal_counts[1] += int(step.info.get("illegal_1", 0))
-                    next_observations = (self.engine.observe(0), self.engine.observe(1))
 
+                    next_observations = (self.engine.observe(0), self.engine.observe(1))
                     if log is not None:
                         for record in decision_records:
                             seat = record["seat"]
@@ -240,21 +238,32 @@ class MatchRunner:
                                 "match_done": step.done,
                                 "engine_tick": tick,
                             }
-                            log.write(json.dumps(transition, separators=(",", ":"), ensure_ascii=False))
+                            log.write(
+                                json.dumps(transition, separators=(",", ":"), ensure_ascii=False)
+                            )
                             log.write("\n")
 
                     observations = next_observations
                     if step.fault is not None:
                         status = "engine_fault"
+                        outcome = "void"
                         fault = step.fault
                         break
                     if step.done:
                         if bool(step.info.get("truncated", 0)):
                             status = "truncated"
+                            outcome = "void"
                         else:
                             status = "completed"
                             raw_winner = int(step.info.get("winner", -1))
-                            winner = raw_winner if raw_winner in (0, 1) else None
+                            if raw_winner in (0, 1):
+                                winner = raw_winner
+                                outcome = f"seat{raw_winner}_win"
+                            elif raw_winner == 2:
+                                outcome = "draw"
+                            else:
+                                status = "invalid_engine_result"
+                                outcome = "void"
                         crowns = (
                             int(step.info.get("crowns_0", 0)),
                             int(step.info.get("crowns_1", 0)),
@@ -263,12 +272,15 @@ class MatchRunner:
                         break
                 else:
                     status = "decision_limit"
+                    outcome = "void"
 
         except AgentExecutionError as exc:
             status = "agent_error"
+            outcome = "void"
             fault = {"kind": "agent_error", "message": str(exc)}
         except Exception as exc:
             status = "runner_error"
+            outcome = "void"
             fault = {"kind": "runner_error", "exception": type(exc).__name__, "message": str(exc)}
         finally:
             for agent in agents:
@@ -276,6 +288,10 @@ class MatchRunner:
                     agent.close()
                 except Exception:
                     pass
+            try:
+                self.engine.close()
+            except Exception:
+                pass
 
         latency_summary = {
             names[seat]: self._latency_summary(latencies[seat]) for seat in (0, 1)
@@ -283,6 +299,7 @@ class MatchRunner:
         result = MatchResult(
             match_id=match_id,
             status=status,
+            outcome=outcome,
             seed=int(seed),
             winner=winner,
             crowns=crowns,
