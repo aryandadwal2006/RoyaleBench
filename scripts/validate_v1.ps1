@@ -244,7 +244,7 @@ Write-Host "=== External JSONL agent integration tournament ==="
 # a string argument to a native executable.
 $WorkerCommandPath = Join-Path $ValidationRoot "external-agent-command.json"
 $WorkerCommandJson = ConvertTo-Json -InputObject ([string[]]@($Python, "examples/agents/hog_cycle_jsonl.py")) -Compress
-$Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+$Utf8NoBom = New-Object System.Text.UTF8Encoding -ArgumentList $false
 [System.IO.File]::WriteAllText($WorkerCommandPath, $WorkerCommandJson, $Utf8NoBom)
 & $Python -m royalebench tournament --profile $Profile --agents "random-legal-v1,external-hog" --external-agent-name "external-hog" --external-agent-command-file $WorkerCommandPath --external-agent-cwd $Root --seeds $Seeds --output $ExternalTournamentRoot
 if ($LASTEXITCODE -ne 0) { throw "External JSONL agent tournament failed." }
