@@ -94,6 +94,8 @@ Before calling crforge the official engine:
 
 Do not use a card in the initial fixed deck if the corresponding behaviour is unsupported or has not passed the required tests.
 
+For the CRForge build, distinguish the test task from the runtime distribution: `:env:test` runs the upstream suite but does not create `env/build/install/env`. RoyaleBench's headless adapter loads JARs from that install distribution, so a runnable build must execute `:env:installDist` and build the pinned game tables before any headless tournament.
+
 ## 4. Match format: remove avoidable confounders
 
 ### 4.1 V1 uses fixed mirrored decks
@@ -284,16 +286,13 @@ The adapter converts the coordinates into the engine's integer world units. It l
 
 ### 7.2 Placement resolution modes
 
-Do not claim higher precision than the engine supports. The inspected crforge Python schema currently exposes 18 × 32 tile-centre placement choices for each hand slot (plus wait and ability actions). Its underlying player-command path performs placement search, but the Python action schema is not currently a continuous or half-tile public action interface.
+Do not claim higher precision than the engine supports. The frozen v1 action interface uses the pinned CRForge Python schema's 18 × 32 tile-centre action grid, plus wait and supported ability actions. Its action-resolution identifier is `tile-center-v1`.
 
-**V1 target: Mode B, half-tile action grid.** Extend the crforge environment schema and masks to a 36 × 64 routing-cell-centre grid. The agent emits x_tile/y_tile at the centre of one half-tile cell (0.25, 0.75, 1.25, ..., 17.75 horizontally; 0.25, 0.75, ..., 31.75 vertically). This is a downstream schema/mask patch, not an existing crforge feature. RoyaleGym's 36 × 64 design is a reference, not proof that the same patch is correct for crforge.
+**Frozen v1: 18 × 32 tile-centre tap-point actions.** `MASK_ALL_TILES=1` exposes the grid points as candidate tap points when a card slot is playable. The adapter sends the selected point through CRForge's native PlayerCommands path. CRForge owns placement search, relocation/refusal behaviour and the 20-tick command delay; RoyaleBench does not choose a strategically better landing point or repair an invalid action.
 
-The current crforge 18 × 32 tile-centre codec remains the fallback for local acceptance tests. If the half-tile patch fails, a tile-centre leaderboard must carry a distinct action-resolution ID; do not pool its ratings with half-tile agents.
+**Not part of v1:** a 36 × 64 half-tile lattice or continuous/fixed-point coordinates. RoyaleGym's finer lattice is a design reference, not an existing CRForge feature. Any future higher-resolution action interface requires an engine/schema patch, a new action-resolution identifier, dedicated placement regression tests and a separate rating track. Never pool those results with `tile-center-v1`.
 
-Fixed-point continuous coordinates are a possible later action schema, not a v1 requirement.
-
-For touch-point semantics, configure the crforge environment to use its MASK_ALL_TILES rule (once verified against the pinned engine): a playable hand slot exposes every action-grid point as a tap point, and the engine's own placement search determines the actual landing tile. Do not use MASK_LANDING_TILES as a strategic filter for the official tap-point agent track, because that would pre-filter placements the client would ordinarily accept and relocate. The mask should gate whether the card can be attempted; native placement search should own the location resolution. This choice must be confirmed by placement regression tests and recorded in the match manifest. The initial code should implement Mode A as a working baseline and test Mode B/C before selecting a higher-precision v1 release. The target is Mode B or C, not a claim that they already exist.
-
+Fixed-point continuous coordinates remain a possible later action schema, not a v1 requirement.
 ### 7.3 Do not provide a giant LLM action list
 
 A 9,000-item placement list is not a workable LLM interface. The agent receives the current hand, costs, board, the fixed action format and the native placement semantics. It outputs card slot and coordinates directly.
