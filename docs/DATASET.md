@@ -22,7 +22,7 @@ The manifest records match IDs by split, transition counts, deterministic split 
 
 ## Split policy
 
-Matches are deterministically ordered by SHA-256 of the split seed and match ID. Default proportions are 80/10/10, adjusted to keep all three partitions non-empty when there are at least three completed matches. For small pilots, a split is not statistically representative; use a larger frozen corpus for reported results.
+Simulator seed groups are deterministically ordered by SHA-256 of the split seed and simulator seed. Every match using the same simulator seed, including paired seat swaps and other agent pairings, stays in the same partition. Default proportions are 80/10/10, adjusted to keep all three partitions non-empty when there are at least three completed matches. For small pilots, a split is not statistically representative; use a larger frozen corpus for reported results.
 
 Only completed matches with a valid win/draw result are exported. Engine-fault, truncated, protocol-failure and other void matches are excluded.
 
@@ -33,5 +33,7 @@ Do not edit a generated shard after export. Re-run the exporter with the same so
 ## Forecasting evaluation
 
 The trajectory data supports action-conditioned state forecasting. A forecast-only model is evaluated separately from competitive agent ratings. A model-based playing agent must also implement the competitive Agent interface.
+
+The versioned ForecastRequestV1 and ForecastResponseV1 JSON Schemas define the first forecast exchange contract. They bind each forecast to the source observation hash and requested horizon. They do not yet constitute a complete forecasting evaluator or a model leaderboard.
 
 A training, validation and test split is only a data-management prerequisite. The final held-out evaluation should use a separately frozen match corpus or hidden seeds and should not be used for policy tuning.
