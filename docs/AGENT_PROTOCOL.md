@@ -1,4 +1,4 @@
-# Agent Protocol v1 (Draft)
+# Agent Protocol v1
 
 **Status:** Implemented v1 contract, pending final local CRForge acceptance. Machine-readable schemas live in `schemas/`; the JSONL subprocess transport is implemented by `SubprocessAgent`.
 
@@ -174,7 +174,7 @@ Any agent class may enter either profile. All agents compared in one profile rec
 
 These values are **simulation decision cadences**, not inference-time or deliberation budgets. The simulation is paused while both agents respond, under a shared operational watchdog. An agent in the 1-second cadence is not granted four times as much wall-clock reasoning time; the engine simply advances 20 ticks rather than 5 between successive observations and action opportunities. The watchdog timeout is a failure-control mechanism, not a strategic compute budget.
 
-At the 250 ms cadence, a three-minute match has up to 720 decision opportunities per seat; at one second it has up to 180. Actual requests can be fewer when the match ends or the agent uses the real-time profile's one-outstanding-request rule.
+At the 250 ms cadence, a three-minute match has up to 720 decision opportunities per seat; at one second it has up to 180. Actual requests can be fewer when the match ends.
 
 ### Efficient LLM prompting
 
@@ -214,7 +214,7 @@ Models producing latent predictions only may enter a model-specific representati
 ### Paused-clock strategic mode
 Both agents receive the same decision snapshot and are called concurrently. The engine does not advance until both responses or operational watchdog outcomes are resolved. Latency is measured but does not consume game time. Proposed v1 operational watchdog: 120 seconds per response. A watchdog timeout is recorded as a technical failure/void, not silently converted into an agent loss. Timeout rate and match-completion rate are reported.
 
-### Real-time mode
+### Real-time mode (deferred; not part of v1)
 The engine advances at 1× game speed (one 50 ms game tick per 50 ms wall-clock time). The scheduler offers an observation every 250 ms only when that agent has no outstanding request. Each agent may have at most one in-flight request. The engine never waits for inference. When a response arrives, it is applied at the current engine tick only if the response matches its request and, for a play, the expected_card is still in the named hand slot. Native placement search and command delay then begin at the actual arrival tick. Otherwise the action is rejected as stale/invalid. The agent does not receive another observation while its previous request is outstanding, so slower inference directly reduces its reaction frequency. Report the achieved action rate and end-to-end latency. A 120-second watchdog cancels/invalidates a hung request.
 
 An adapter must not infer the timing mode from provider response time. It is explicitly supplied.
