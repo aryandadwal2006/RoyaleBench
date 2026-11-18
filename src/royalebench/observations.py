@@ -60,8 +60,8 @@ def build_observation(
 ) -> dict[str, Any]:
     """Build a public-only observation from the CRForge seat view.
 
-    CRForge already applies its seat visibility rules before writing these rows. This converter
-    preserves unknown values (-1) and does not read the underlying battle objects or enemy state.
+    CRForge applies its seat visibility rules before writing these rows. This converter preserves
+    unknown values (-1) and does not read the underlying battle objects or enemy state.
     """
     if seat not in (0, 1):
         raise ValueError("seat must be 0 or 1")
@@ -149,10 +149,9 @@ def build_observation(
     }
     recent_plays = []
     for index in range(schema.enemy_play_rows):
-        card_id = play_fields["card"][index]
         recent_plays.append(
             {
-                "card": _name(vocabulary, card_id),
+                "card": _name(vocabulary, play_fields["card"][index]),
                 "cast_as": _name(vocabulary, play_fields["cast"][index]),
                 "form": play_fields["form"][index],
                 "ticks_since_play": play_fields["ticks"][index],
@@ -187,7 +186,6 @@ def build_observation(
         if bool(action_mask[schema.first_ability + slot])
     ]
 
-    metadata = vector.metadata
     payload = {
         "schema": OBSERVATION_SCHEMA,
         "match_id": match_id,
@@ -227,7 +225,11 @@ def build_observation(
         "legal_actions": {
             "playable_slots": playable_slots,
             "ability_slots": ability_slots,
-            "tile_grid": {"cols": schema.cols, "rows": schema.rows, "resolution": "tile-center-v1"},
+            "tile_grid": {
+                "cols": schema.cols,
+                "rows": schema.rows,
+                "resolution": "tile-center-v1",
+            },
             "mask_rule": "all-tap-tiles-v1",
         },
         "engine": {

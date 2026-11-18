@@ -2,15 +2,52 @@
 
 from __future__ import annotations
 
+import difflib
+import re
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any
 
 import numpy as np
 
 from royalebench.config import V1Config
 from royalebench.engine.actions import to_crforge_action
 from royalebench.observations import build_observation
+
+_CARD_ALIASES = {
+    "thelog": ("thelog", "log"),
+    "log": ("log", "thelog"),
+    "icespirit": ("icespirit", "icespirits"),
+}
+
+
+def _normalize_card_name(name: str) -> str:
+    return re.sub(r"[^a-z0-9]", "", name.casefold())
+
+
+def _resolve_deck_rows(deck: Sequence[str], vocabulary: Sequence[str]) -> tuple[str, ...]:
+    """Resolve UI/deck-list names to this pinned data table's exact row names."""
+    normalized: dict[str, str] = {}
+    for row in vocabulary:
+        normalized.setdefault(_normalize_card_name(row), row)
+
+    resolved: list[str] = []
+    for requested in deck:
+        key = _normalize_card_name(requested)
+        aliases = _CARD_ALIASES.get(key, (key,))
+        match = next((normalized[alias] for alias in aliases if alias in normalized), None)
+        if match is None:
+            suggestions = difflib.get_close_matches(requested, list(vocabulary), n=5, cutoff=0.4)
+            raise ValueError(
+                f"deck card {requested!r} is not in this CRForge vocabulary; "
+                f"nearby row names: {suggestions}"
+            )
+        resolved.append(match)
+
+    if len(set(resolved)) != len(resolved):
+        raise ValueError("two configured deck labels resolve to the same CRForge card row")
+    return tuple(resolved)
 
 
 class CrforgeEngineError(RuntimeError):
@@ -25,11 +62,7 @@ class BattleStep:
 
 
 class CrforgeBattle:
-    """One synchronized two-seat battle driven by the CRForge JVM environment.
-
-    CRForge remains responsible for command delay, affordability, placement search, combat and
-    game termination. RoyaleBench only translates observations and actions.
-    """
+    """One synchronized two-seat battle driven by the CRForge JVM environment."""
 
     def __init__(
         self,
@@ -57,12 +90,7 @@ class CrforgeBattle:
         )
         try:
             self.vector = VectorBattle(
-                1,
-                1,
-                install=install,
-                engine="ladder",
-                tables=tables,
-                config=ladder_config,
+                1, 1, install=install, engine="ladder", tables=tables, config=ladder_config
             )
         except Exception as exc:
             raise CrforgeEngineError(f"could not initialize CRForge: {exc}") from exc
@@ -79,7 +107,8 @@ class CrforgeBattle:
         if self.vector.mask_version != 1:
             self.close()
             raise CrforgeEngineError(
-                f"CRForge mask version is {self.vector.mask_version}; v1 requires MASK_ALL_TILES=1"
+                f"CRForge mask version is {self.vector.mask_version}; "
+                "v1 requires MASK_ALL_TILES=1"
             )
         wanted_version = expected_data_version or config.data_version
         if self.vector.data_version != wanted_version:
@@ -90,24 +119,11 @@ class CrforgeBattle:
             )
 
         try:
-            for card in config.deck:
-                self.vector.card_id(card)
-        except KeyError as exc:
-            candidates = list(self.vector.vocabulary)
-            import difflib
-
-            close = difflib.get_close_matches(str(exc), candidates, n=5, cutoff=0.45)
+            self.deck_rows = _resolve_deck_rows(config.deck, self.vector.vocabulary)
+        except ValueError as exc:
             self.close()
-            raise CrforgeEngineError(
-                f"deck card {exc} is not in the CRForge vocabulary; nearby rows: {close}"
-            ) from exc
+            raise CrforgeEngineError(str(exc)) from exc
 
-        # Used by the action encoder to bind a response to the card in its current hand slot.
-        self.schema._royalebench_card_name = lambda card_id: (
-            self.vector.vocabulary[card_id]
-            if 0 <= int(card_id) < len(self.vector.vocabulary)
-            else None
-        )
         self._match_id: str | None = None
         self._decision_id = 0
 
@@ -121,7 +137,7 @@ class CrforgeBattle:
         self._match_id = match_id
         self._decision_id = 0
         try:
-            self.vector.reset([int(seed)], self.config.deck, self.config.deck)
+            self.vector.reset([int(seed)], self.deck_rows, self.deck_rows)
         except Exception as exc:
             raise CrforgeEngineError(
                 f"CRForge refused the fixed v1 deck or match setup: {exc}"
@@ -132,6 +148,8 @@ class CrforgeBattle:
         return self.observe(0), self.observe(1)
 
     def observe(self, seat: int) -> dict[str, Any]:
+        if seat not in (0, 1):
+            raise ValueError("seat must be 0 or 1")
         if self._match_id is None:
             raise RuntimeError("reset the battle before requesting observations")
         raw = self.vector.observations[0, seat].copy()
@@ -155,6 +173,11 @@ class CrforgeBattle:
             schema=self.schema,
             raw_observation=raw,
             action_mask=mask,
+            card_name_lookup=lambda card_id: (
+                self.vector.vocabulary[card_id]
+                if 0 <= int(card_id) < len(self.vector.vocabulary)
+                else None
+            ),
         )
 
     def step(self, actions: Sequence[int]) -> BattleStep:

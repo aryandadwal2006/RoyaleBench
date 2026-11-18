@@ -1,9 +1,4 @@
-"""Request-bound agent response envelopes.
-
-Request identity prevents a delayed or duplicated response from being applied
-to a different game observation. Real-time scheduling performs a second
-current-state check, including expected_card-in-hand-slot for play actions.
-"""
+"""Request-bound agent response envelopes."""
 
 from __future__ import annotations
 
@@ -12,7 +7,6 @@ from dataclasses import dataclass
 from typing import Any
 
 from .actions import Action, ActionResolution, action_from_mapping
-
 
 RESPONSE_SCHEMA = "royalebench.agent-response.v1"
 _SHA256_RE = re.compile(r"^[a-f0-9]{64}$")
@@ -65,7 +59,7 @@ class AgentResponse:
 
         request_id = raw["request_id"]
         decision_id = raw["decision_id"]
-        observation_hash = raw["observation_hash"]
+        observation_hash_value = raw["observation_hash"]
 
         if not isinstance(request_id, str) or not request_id:
             raise ResponseMismatchError("request_id must be a non-empty string")
@@ -78,9 +72,9 @@ class AgentResponse:
         ):
             raise ResponseMismatchError("response decision_id does not match")
         if (
-            not isinstance(observation_hash, str)
-            or not _SHA256_RE.fullmatch(observation_hash)
-            or observation_hash != expected_observation_hash
+            not isinstance(observation_hash_value, str)
+            or not _SHA256_RE.fullmatch(observation_hash_value)
+            or observation_hash_value != expected_observation_hash
         ):
             raise ResponseMismatchError("response observation_hash does not match")
 
@@ -92,7 +86,7 @@ class AgentResponse:
         return cls(
             request_id=request_id,
             decision_id=decision_id,
-            observation_hash=observation_hash,
+            observation_hash=observation_hash_value,
             action=action,
             telemetry=telemetry,
         )

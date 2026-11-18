@@ -1,0 +1,23 @@
+version: 1
+engine:
+  name: crforge
+  upstream_commit: fa5959055c590a493d62c8dbc804e602832d08a6
+  data_version: "16.635.8"
+match:
+  deck:
+    - Cannon
+    - Fireball
+    - HogRider
+    - IceGolem
+    - IceSpirit
+    - Musketeer
+    - Skeletons
+    - TheLog
+  card_level: 11
+  tower_level: 11
+  max_ticks: 9000
+  mask_version: 1
+  action_resolution: tile-center-v1
+decision_profiles:
+  fast-250ms-v1: 5
+  llm-api-1s-v1: 20

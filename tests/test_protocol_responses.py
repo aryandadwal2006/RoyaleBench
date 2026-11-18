@@ -1,10 +1,9 @@
+from __future__ import annotations
+
 import pytest
 
 from royalebench.protocol.actions import ActionResolution, PlayAction
-from royalebench.protocol.responses import (
-    AgentResponse,
-    ResponseMismatchError,
-)
+from royalebench.protocol.responses import AgentResponse, ResponseMismatchError
 
 
 REQUEST_ID = "req-0001"

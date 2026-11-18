@@ -1,16 +1,10 @@
-"""Typed v1 actions and action-resolution validation.
-
-The JSON Schema validates the wire shape. ActionResolution validates whether
-the chosen coordinates belong to the quantized action grid declared by a match.
-It never snaps or repairs an agent action.
-"""
+"""Typed v1 actions and action-resolution validation."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from math import isclose, isfinite
 from typing import TypeAlias
-
 
 ACTION_SCHEMA = "royalebench.action.v1"
 ARENA_WIDTH_TILES = 18
@@ -51,12 +45,7 @@ Action: TypeAlias = WaitAction | PlayAction | AbilityAction
 
 @dataclass(frozen=True, slots=True)
 class ActionResolution:
-    """Coordinate quantization used by a benchmark match.
-
-    Coordinates are expressed in tile units in the acting seat's frame.
-    The half-tile grid uses the centres of 0.5 x 0.5 tile cells, hence 0.25,
-    0.75, ..., 17.75 on x and 0.25, 0.75, ..., 31.75 on y.
-    """
+    """Coordinate quantization used by a benchmark match."""
 
     resolution_id: str
     offset_tiles: float
@@ -111,14 +100,10 @@ def _validate_coordinate(
         raise ActionValidationError(f"{axis}_tile must be a finite number")
     coordinate = float(value)
     if not 0.0 <= coordinate < float(limit):
-        raise ActionValidationError(
-            f"{axis}_tile={coordinate} is outside [0, {limit})"
-        )
+        raise ActionValidationError(f"{axis}_tile={coordinate} is outside [0, {limit})")
     grid_position = (coordinate - offset) / step
     if not isclose(grid_position, round(grid_position), rel_tol=0.0, abs_tol=1e-7):
-        raise ActionValidationError(
-            f"{axis}_tile={coordinate} is not on {resolution_id}"
-        )
+        raise ActionValidationError(f"{axis}_tile={coordinate} is not on {resolution_id}")
 
 
 def action_from_mapping(
@@ -126,11 +111,7 @@ def action_from_mapping(
     *,
     resolution: ActionResolution,
 ) -> Action:
-    """Parse and validate a JSON-like object under the v1 action contract.
-
-    Coordinates are checked against the match resolution. No snapping, card
-    substitution, legality repair or strategic fallback is performed here.
-    """
+    """Parse and validate a JSON-like object under the v1 action contract."""
     if not isinstance(raw, dict):
         raise ActionValidationError("action must be a JSON object")
 
@@ -177,9 +158,7 @@ def action_from_mapping(
         if isinstance(button, bool) or not isinstance(button, int):
             raise ActionValidationError("button must be an integer")
         if not 0 <= button < ABILITY_BUTTONS:
-            raise ActionValidationError(
-                f"button must be in [0, {ABILITY_BUTTONS})"
-            )
+            raise ActionValidationError(f"button must be in [0, {ABILITY_BUTTONS})")
         return AbilityAction(button=button)
 
     raise ActionValidationError(f"unsupported action type: {action_type!r}")

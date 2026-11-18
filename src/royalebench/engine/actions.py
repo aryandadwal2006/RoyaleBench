@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 
 import numpy as np
@@ -21,6 +22,7 @@ def to_crforge_action(
     schema: Any,
     raw_observation: np.ndarray,
     action_mask: np.ndarray,
+    card_name_lookup: Callable[[int], str | None],
 ) -> tuple[int, bool]:
     """Return (CRForge action integer, mask-open flag).
 
@@ -35,22 +37,15 @@ def to_crforge_action(
     if isinstance(action, PlayAction):
         hand_ids = np.asarray(schema.field(raw_observation, "hand_card")).reshape(-1)
         hand_slot_card = int(hand_ids[action.hand_slot])
-        # The card name is resolved by the environment's vocabulary in the observation builder.
-        expected = action.expected_card
-        actual = getattr(schema, "_royalebench_card_name", None)
-        if callable(actual):
-            actual_name = actual(hand_slot_card)
-        else:
-            actual_name = None
+        actual_name = card_name_lookup(hand_slot_card)
         if actual_name is None:
             raise ValueError(
-                "the CRForge action bridge requires schema._royalebench_card_name to validate "
-                "expected_card against the current hand"
+                f"CRForge observation has no card in hand slot {action.hand_slot}"
             )
-        if actual_name != expected:
+        if actual_name != action.expected_card:
             raise ValueError(
                 f"stale or mismatched hand slot {action.hand_slot}: expected "
-                f"{expected!r}, current card is {actual_name!r}"
+                f"{action.expected_card!r}, current card is {actual_name!r}"
             )
         col = round(action.x_tile - 0.5)
         row = round(action.y_tile - 0.5)

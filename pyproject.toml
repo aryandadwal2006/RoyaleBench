@@ -4,18 +4,30 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "royalebench"
-version = "0.0.1"
+version = "0.1.0"
 description = "A reproducible competitive benchmark for AI agents in Clash Royale-style battles"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+  "numpy>=1.26",
+  "PyYAML>=6.0",
+]
 
 [project.optional-dependencies]
+engine = [
+  "jpype1>=1.5,<2",
+  "gymnasium>=1.0,<2",
+  "pettingzoo>=1.24,<2",
+]
 dev = [
   "pytest>=8.0",
   "ruff>=0.6",
   "mypy>=1.10",
+  "jsonschema>=4.20",
 ]
+
+[project.scripts]
+royalebench = "royalebench.cli:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

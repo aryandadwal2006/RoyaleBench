@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:royalebench:observation:v1",
+  "title": "RoyaleBench ObservationV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "match_id",
+    "decision_id",
+    "seat",
+    "game",
+    "own",
+    "opponent",
+    "entities",
+    "legal_actions",
+    "engine"
+  ],
+  "properties": {
+    "schema": {
+      "const": "royalebench.observation.v1"
+    },
+    "match_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "decision_id": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "seat": {
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ]
+    },
+    "game": {
+      "type": "object"
+    },
+    "own": {
+      "type": "object"
+    },
+    "opponent": {
+      "type": "object"
+    },
+    "entities": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "legal_actions": {
+      "type": "object"
+    },
+    "engine": {
+      "type": "object"
+    }
+  }
+}

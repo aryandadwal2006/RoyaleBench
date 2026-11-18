@@ -39,6 +39,8 @@ class V1Config:
             raise ValueError("deck card names must be non-empty strings")
         if len(set(self.deck)) != 8:
             raise ValueError("the v1 deck must contain eight distinct cards")
+        if not self.data_version.strip():
+            raise ValueError("data_version must be non-empty")
         if self.card_level < 1 or self.tower_level < 1:
             raise ValueError("card and tower levels must be positive")
         if self.max_ticks < 0:
@@ -64,15 +66,18 @@ class V1Config:
     def from_mapping(cls, raw: dict[str, Any]) -> V1Config:
         match = raw.get("match", {})
         profiles = raw.get("decision_profiles", {})
-        if not isinstance(match, dict) or not isinstance(profiles, dict):
-            raise ValueError("configuration keys 'match' and 'decision_profiles' must be mappings")
+        engine = raw.get("engine", {})
+        if not all(isinstance(value, dict) for value in (match, profiles, engine)):
+            raise ValueError(
+                "configuration sections 'engine', 'match' and 'decision_profiles' must be mappings"
+            )
         deck_raw = match.get("deck", list(V1_DECK))
         if not isinstance(deck_raw, list):
             raise ValueError("match.deck must be a list")
         profile_rows = tuple((str(name), int(ticks)) for name, ticks in profiles.items())
         return cls(
             deck=tuple(str(card) for card in deck_raw),
-            data_version=str(match.get("data_version", "16.635.8")),
+            data_version=str(engine.get("data_version", "16.635.8")),
             card_level=int(match.get("card_level", 11)),
             tower_level=int(match.get("tower_level", 11)),
             max_ticks=int(match.get("max_ticks", 9000)),
@@ -83,15 +88,13 @@ class V1Config:
 
 
 def load_config(path: str | Path) -> V1Config:
-    """Load the small YAML release configuration.
-
-    PyYAML is a runtime dependency of the command-line package; the import is local so
-    protocol-only users can still import the package in a minimal Python environment.
-    """
+    """Load the small YAML release configuration."""
     try:
         import yaml
     except ImportError as exc:
-        raise RuntimeError("YAML config loading requires PyYAML; install RoyaleBench dependencies") from exc
+        raise RuntimeError(
+            "YAML config loading requires PyYAML; install RoyaleBench dependencies"
+        ) from exc
 
     source = Path(path)
     raw = yaml.safe_load(source.read_text(encoding="utf-8"))
