@@ -9,13 +9,13 @@ CYCLE_LENGTH = 4
 
 def derive_opponent_cycle(
     deck: list[str],
-    plays_oldest_first: list[dict[str, Any]],
+    recent_plays_newest_first: list[dict[str, Any]],
     *,
     play_count: int,
 ) -> dict[str, Any]:
     """Infer the opponent's hand set from the last four publicly shown card plays.
 
-    CRForge emits its bounded play ledger oldest-first. Unused rows trail the ledger,
+    CRForge emits its bounded play ledger newest-first. Unused rows trail the ledger,
     and an individual card identity may remain unknown until the game shows that play.
     The function therefore considers exactly the last four actual play rows and
     fails closed if any of them is not publicly identified.
@@ -29,9 +29,9 @@ def derive_opponent_cycle(
     if play_count < 0:
         raise ValueError("play_count must be non-negative")
 
-    ledger_size = min(play_count, len(plays_oldest_first))
-    ledger = plays_oldest_first[:ledger_size]
-    latest_four = ledger[-CYCLE_LENGTH:]
+    ledger_size = min(play_count, len(recent_plays_newest_first))
+    ledger = recent_plays_newest_first[:ledger_size]
+    latest_four = ledger[:CYCLE_LENGTH]
     exact = (
         play_count >= CYCLE_LENGTH
         and len(latest_four) == CYCLE_LENGTH
@@ -43,7 +43,8 @@ def derive_opponent_cycle(
     )
 
     if exact:
-        queue = [str(row["card"]) for row in latest_four]
+        latest_four_newest_first = [str(row["card"]) for row in latest_four]
+        queue = list(reversed(latest_four_newest_first))
         hand_cards: list[str] | None = [card for card in deck if card not in set(queue)]
         if len(hand_cards) != CYCLE_LENGTH:
             exact = False
